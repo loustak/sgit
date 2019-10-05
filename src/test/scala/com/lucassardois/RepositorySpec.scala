@@ -5,35 +5,28 @@ import better.files._
 
 class RepositorySpec extends FlatSpec {
 
-  /* Helper function to create repository trough Repository.init() */
-  def create(path: String = RepositoryTest.getRepositoryPath()) = {
-    val either = Repository.init(path)
-    either.getOrElse(fail("Failed to init repo."))
-  }
 
-  "The repository" should "be initializable" in {
-    create()
+  "A repository" should "be initializable" in {
+    IORepositoryTest.init()
   }
 
   it should "be written on disk" in {
-    val repo = create()
+    val repo = IORepositoryTest.init()
 
-    repo._write()
     assert(Repository.existsAt(repo.path))
-    repo._delete()
+    IORepository.delete(repo)
   }
 
-  it should "head should be set to the master branch after initialization" in {
-    val repo = create()
+  it should "have it's head set to the master branch after initialization" in {
+    val repo = IORepositoryTest.init()
     assert(repo.head.name == "master")
   }
 
   it should "provide an error message if this is already an sgit repo" in {
-    val path = RepositoryTest.getRepositoryPath()
-    val repo1 = create(path)
-    repo1._write()
-    val repo2 = Repository.init(path)
-    repo1._delete()
+    val path = IORepositoryTest.getRepositoryPath()
+    val repo1 = IORepository.init(path).getOrElse(fail())
+    val repo2 = IORepository.init(path)
+    IORepository.delete(repo1)
 
     repo2 match {
       case Right(x) => fail("Repository was still created")
@@ -42,9 +35,8 @@ class RepositorySpec extends FlatSpec {
   }
 
   it should "be destroyable for tests" in {
-    val repo = create()
-    repo._write()
-    repo._delete()
+    val repo = IORepositoryTest.init()
+    IORepository.delete(repo)
     assert(Repository.existsAt(repo.path) == false)
   }
 }

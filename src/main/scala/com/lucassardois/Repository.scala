@@ -25,32 +25,58 @@ object Repository {
         return file.isDirectory()
     }
 
+    def initFromFolder(path: String): Repository = ???
+}
+
+class Repository(
+    val path: String,
+    val head: Branch,
+    val branches: List[Branch]
+    ) {
+
+    def getBranchesPath(): String = {
+        path + "/" + Branch.getFilePath()
+    }
+
+    def branchesFileExists(): Boolean = {
+        val branchesPath = getBranchesPath()
+        val file = File(branchesPath)
+        file.exists()
+    }
+}
+
+object IORepository {
+
+    @impure
     def init(path: String): Either[String, Repository] = {
-        if (existsAt(path)) {
+        if (Repository.existsAt(path)) {
             return Left("This is already an sgit repository.")
         }
 
         val master = new Branch("master", NoParentCommit)
+        val branches = List(master)
 
-        Right(new Repository(path, master))
+        val repo = new Repository(path, master, branches)
+
+        write(repo)
+        Right(repo)
     }
 
-    def initFromFolder(path: String): Repository = ???
-}
-
-class Repository(val path: String, val head: Branch) {
-
-    /* Delete all the files in a repository, this functions
-    is not available for the user but only for tests this function
-    is unpure since it only manage files */
-    def _delete(): Unit = {
-        val file = File(path)
+    /* Delete all the files in a repository, this function
+    is not available for the user but only for tests.
+    This function is unpure since it only manage files. */
+    @impure
+    def delete(repo: Repository) = {
+        val file = File(repo.path)
         file.delete()
     }
 
-    /* Unpure function wich write the repository to the disk */
-    def _write(): Unit = {
-        val file = File(path)
+    /* Unpure function wich write the repository to the disk. */
+    @impure
+    def write(repo: Repository) = {
+        val file = File(repo.path)
         file.createDirectory()
+
+        IOBranch.writeBranches(repo)
     }
 }
