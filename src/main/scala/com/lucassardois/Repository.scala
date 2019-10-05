@@ -1,6 +1,7 @@
 package com.lucassardois
 
 import better.files._
+import scala.annotation.implicitNotFound
 
 /* Used to get a path to the repository in real conditions */
 object RepositoryReal {
@@ -24,8 +25,6 @@ object Repository {
         val file = File(path)
         return file.isDirectory()
     }
-
-    def initFromFolder(path: String): Repository = ???
 }
 
 class Repository(
@@ -62,6 +61,15 @@ object IORepository {
         Right(repo)
     }
 
+    /* Try to load the repository */
+    @impure
+    def initFromFolder(path: String): Either[String, Repository] = {
+        if (!Repository.existsAt(path)) {
+            return Left("Abort, not a sgit repository.")
+        }
+        return Left("lol")
+    }
+
     /* Delete all the files in a repository, this function
     is not available for the user but only for tests.
     This function is unpure since it only manage files. */
@@ -77,6 +85,6 @@ object IORepository {
         val file = File(repo.path)
         file.createDirectory()
 
-        IOBranch.writeBranches(repo)
+        IOBranches.write(repo)
     }
 }
