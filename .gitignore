@@ -1,6 +1,8 @@
 .bloop
 .metals
 .vscode
+.sgit
+test/*
 target
 project/*
 !project/build.properties
