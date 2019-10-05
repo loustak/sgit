@@ -13,7 +13,7 @@ object Parser {
             case "" :: Nil => Empty
             case "init" :: x => {
                 val path = RepositoryReal.getRepositoryPath()
-                RepositoryConstructor(path)
+                Repository.init(path)
             }
             case _ => NotACommand
         }

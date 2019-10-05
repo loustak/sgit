@@ -1,7 +1,10 @@
 package com.lucassardois
 
-/* Used to get the path to the repository in test conditions */
+import org.scalatest._
+import java.util.UUID.randomUUID
+
 object RepositoryTest {
 
-    def getRepositoryPath(): String = "test"
+    /* Used to get the path to the repository in test conditions */
+    def getRepositoryPath(): String = "test/" + randomUUID()
 }
