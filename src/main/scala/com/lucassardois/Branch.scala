@@ -5,7 +5,7 @@ import scala.annotation.tailrec
 
 object Branch {
     
-    def getFilePath() = "branches"
+    def getFilePath(): String = "branches"
 
     def createFromLine(line: String): Either[String, Branch] = {
         val split = line.split(" ")
@@ -45,13 +45,13 @@ object IOBranch {
 /* Allow to manipulate a list of branch */
 object IOBranches {
 
+    /* Return either an error, or the list of all the branch reads */
     def read(repo: Repository): Either[String, List[Branch]] = {
         if (!repo.branchesFileExists()) {
             return Left("Abort, no branches found: invalid repository.")
         }
 
-        val branchesPath = repo.getBranchesPath()
-        val file = File(branchesPath)
+        val file = repo.getBranchFile()
         val lines = file.lines()
 
         val either = recRead(lines.toList)
@@ -80,8 +80,7 @@ object IOBranches {
     /* Unpure function wich write all the branches of the repo. */
     @impure
     def write(repo: Repository): Unit = {
-        val branchPath = repo.getBranchesPath()
-        val file = File(branchPath) 
+        val file = repo.getBranchFile()
         
         file.createFileIfNotExists()
         file.clear()

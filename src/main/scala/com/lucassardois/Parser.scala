@@ -1,5 +1,7 @@
 package com.lucassardois
 
+import better.files._
+
 object Parser {
     object Empty { }
     object NotACommand { }
@@ -12,8 +14,8 @@ object Parser {
             case Nil => Empty
             case "" :: Nil => Empty
             case "init" :: x => {
-                val path = RepositoryReal.getRepositoryPath()
-                IORepository.init(path)
+                val file = File(Repository.getRepositoryPath())
+                IORepository.init(file)
             }
             case _ => NotACommand
         }

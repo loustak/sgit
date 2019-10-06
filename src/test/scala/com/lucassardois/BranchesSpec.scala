@@ -7,17 +7,15 @@ class BranchesSpec extends FlatSpec {
 
     "Branches" should "be written on repo init" in {
         val repo = IORepositoryTest.init()
-        val branchesPath = repo.getBranchesPath()
         assert(repo.branchesFileExists())
-        IORepository.delete(repo)
+        IORepositoryTest.delete(repo)
     }
 
     it should "have the correct format" in {
         val repo = IORepositoryTest.init()
         val branches = repo.branches
-        val branchesPath = repo.getBranchesPath()
+        val file = repo.getBranchFile()
 
-        val file = File(branchesPath)
         file.lines().foreach( (line) => {
             val splited = line.split(" ")
 
@@ -25,6 +23,6 @@ class BranchesSpec extends FlatSpec {
             assert(splited.isDefinedAt(1))
         })
 
-        IORepository.delete(repo)
+        IORepositoryTest.delete(repo)
     }
 }

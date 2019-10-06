@@ -1,90 +1,80 @@
 package com.lucassardois
 
 import better.files._
-import scala.annotation.implicitNotFound
+import scala.annotation.tailrec
 
-/* Used to get a path to the repository in real conditions */
-object RepositoryReal {
+object Repository {
 
-    def getName(): String = ".sgit"
+    def getDirectoryName(): String = ".sgit"
 
     def getCurrentFolder(): String = {
         System.getProperty("user.dir")
     }
 
     def getRepositoryPath(): String = {
-        getCurrentFolder() + "/" + getName()
+        getCurrentFolder() + "/" + getDirectoryName()
     }
-}
-
-object Repository {
 
     /* Return wether or not a sgit repository
-        exists at the given path */
-    def existsAt(path: String): Boolean = {
-        val file = File(path)
-        return file.isDirectory()
+        exists at the given path if not, check for parent */
+    @tailrec
+    def isARepository(file: File): Boolean = {
+        val repoFile = file/getDirectoryName()
+        if (repoFile.isDirectory()) {
+            return true
+        } else {
+            val parent = file.parent
+            if (parent == null) return false
+            isARepository(parent)
+        }
     }
 }
 
 class Repository(
-    val path: String,
+    val file: File,
     val head: Branch,
     val branches: List[Branch]
     ) {
 
-    def getBranchesPath(): String = {
-        path + "/" + Branch.getFilePath()
+    def getBranchFile(): File = {
+        file/Branch.getFilePath()
     }
 
     def branchesFileExists(): Boolean = {
-        val branchesPath = getBranchesPath()
-        val file = File(branchesPath)
-        file.exists()
+        getBranchFile().exists()
     }
 }
 
 object IORepository {
 
     @impure
-    def init(path: String): Either[String, Repository] = {
-        if (Repository.existsAt(path)) {
+    def init(file: File): Either[String, Repository] = {
+        if (Repository.isARepository(file)) {
             return Left("This is already an sgit repository.")
         }
 
         val master = new Branch("master", NoParentCommit)
         val branches = List(master)
 
-        val repo = new Repository(path, master, branches)
+        val repo = new Repository(file, master, branches)
 
-        write(repo)
+        IORepository.write(repo)
         Right(repo)
     }
 
     /* Try to load the repository */
     @impure
-    def initFromFolder(path: String): Either[String, Repository] = {
-        if (!Repository.existsAt(path)) {
+    def initFromFolder(file: File): Either[String, Repository] = {
+        if (!Repository.isARepository(file)) {
             return Left("Abort, not a sgit repository.")
         }
         return Left("lol")
     }
 
-    /* Delete all the files in a repository, this function
-    is not available for the user but only for tests.
-    This function is unpure since it only manage files. */
-    @impure
-    def delete(repo: Repository) = {
-        val file = File(repo.path)
-        file.delete()
-    }
-
     /* Unpure function wich write the repository to the disk. */
     @impure
     def write(repo: Repository) = {
-        val file = File(repo.path)
-        file.createDirectory()
-
+        repo.file.createDirectories()
         IOBranches.write(repo)
     }
 }
