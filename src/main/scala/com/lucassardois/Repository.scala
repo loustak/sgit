@@ -36,13 +36,11 @@ class Repository(
     val branches: List[Branch]
     ) {
 
-    def getBranchFile(): File = {
-        file/Branch.getFilePath()
-    }
+    def getRefsFile(): File = file/"refs"
 
-    def branchesFileExists(): Boolean = {
-        getBranchFile().exists()
-    }
+    def getHeadsFile(): File = getRefsFile()/"heads"
+
+    def getHeadFile(): File = file/"HEAD"
 }
 
 object IORepository {
@@ -75,6 +73,10 @@ object IORepository {
     @impure
     def write(repo: Repository) = {
         repo.file.createDirectories()
-        IOBranches.write(repo)
+        val heads = repo.getHeadsFile()
+        heads.createDirectories()
+        val head = repo.getHeadFile()
+        head.write(repo.head.name.toString())
+        IOBranch.writeAll(repo.getHeadsFile(), repo.branches)
     }
 }

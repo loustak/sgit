@@ -10,7 +10,7 @@ object IORepositoryTest extends FlatSpec {
     we isolate each test repo in a separate folder to make test
     frictionless as possible. */
     def getRepositoryFile(): File = {
-        File("test/" + randomUUID() + "/" + Repository.getDirectoryName())
+        Test.getFile()/randomUUID().toString()/Repository.getDirectoryName()
     }
 
     /* Helper function to create repository trough Repository.init() */
