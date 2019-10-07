@@ -22,7 +22,7 @@ object Parser {
         .children(
           arg[String](name = "<file>...")
             .unbounded()
-            .action((x, c) => c.copy(files = c.files :+ x))
+            .action((x, c) => c.copy(paths = c.paths :+ x))
             .text("list of files to add"),
         )
 

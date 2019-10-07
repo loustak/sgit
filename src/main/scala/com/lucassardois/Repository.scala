@@ -11,6 +11,10 @@ object Repository {
         System.getProperty("user.dir")
     }
 
+    def getCurrentFolder(): File = {
+        File(getCurrentPath())
+    }
+
     def getRepositoryPath(): String = {
         getCurrentPath() + "/" + getDirectoryName()
     }
@@ -33,17 +37,21 @@ object Repository {
     valid sgit repository it returns an error as a string.
     It also inject the path of the issued command as a function parameter. */
     def callInside(
-        folder: File, 
-        args: List[String],
-        func: (File, File, List[String]) => Option[String]): 
+        args: Config,
+        func: (File, File, Config) => Option[String]): 
             Option[String] = {
 
-        val commandFolder = File(getCurrentPath())
+        val currentFolder = File(getCurrentPath())
+        val commandFolder = currentFolder
 
-        Repository.isARepository(folder) match {
+        Repository.isARepository(currentFolder) match {
             case Some(repoFolder) => func(repoFolder, commandFolder, args)
             case _ => Some("Not a sgit repository.")
         }
+    }
+
+    def pathFromRepo(repoFolder: File, file: File): String = {
+        file.pathAsString.replace(repoFolder.pathAsString + "/", "")
     }
 
     def getRefsPath(): String = "refs"
@@ -88,7 +96,22 @@ object IORepository {
     }
 
     @impure
-    def add(folder: File, commandFolder: File, args: List[String]): Option[String] = {
+    def add(repoFolder: File, commandFolder: File, args: Config): Option[String] = {
+        val indexFile = repoFolder/Repository.getIndexPath()
+
+        if (!indexFile.exists) {
+            return Some("Repository is corrupt: index file doesn't exists.")
+        }
+
+        val files = args.paths.map( (path) => File(path))
+
+        files.foreach( (file) => {
+            if (file.isRegularFile) {
+                val str = file.sha256 + " " + Repository.pathFromRepo(repoFolder.parent, file)
+                indexFile.append(str)
+            }
+        })
+
         None
     }
 }
