@@ -3,14 +3,9 @@ package com.lucassardois
 import org.scalatest._
 import better.files._
 
-class RepositorySpec extends FlatSpec {
+class InitSpec extends FlatSpec {
 
-  "A repository" should "be initializable" in {
-    val repo = IORepositoryTest.init()
-    IORepositoryTest.delete(repo)
-  }
-
-  it should "be written on disk" in {
+  "A initialized repository" should "be written on disk" in {
     val repo = IORepositoryTest.init()
     assert(repo.isDirectory())
     IORepositoryTest.delete(repo)
@@ -20,6 +15,8 @@ class RepositorySpec extends FlatSpec {
     val repo = IORepositoryTest.init()
     val index = repo/Repository.getIndexPath()
     assert(index.isRegularFile)
+    val lines = index.contentAsString()
+    assert(lines == "")
     IORepositoryTest.delete(repo)
   }
 
@@ -45,7 +42,7 @@ class RepositorySpec extends FlatSpec {
     IORepositoryTest.delete(repo)
   }
 
-  it should "have it's master branch written after initialization" in {
+  it should "have it's master branch written" in {
     val repo = IORepositoryTest.init()
     val heads = repo/Repository.getHeadsPath()
     val master = heads/"master"
@@ -53,7 +50,7 @@ class RepositorySpec extends FlatSpec {
     IORepositoryTest.delete(repo)
   }
 
-  it should "provide an error message if trying to init inside an sgit repo" in {
+  it should "provide an error message if trying to be init inside an sgit repo" in {
     val folder = Test.getRandomFolder()
     IORepository.init(folder)
     val error = IORepository.init(folder)
@@ -67,7 +64,7 @@ class RepositorySpec extends FlatSpec {
     }
   }
 
-  it should "provide an error message if trying to init inside a nested fodler of an sgit repo" in {
+  it should "provide an error message if trying to be init inside a nested fodler of an sgit repo" in {
     val folder = Test.getRandomFolder()
     IORepository.init(folder)
 

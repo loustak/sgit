@@ -18,14 +18,31 @@ object Repository {
     /* Return wether or not a sgit repository
         exists at the given path if not, check for parent */
     @tailrec
-    final def isARepository(folder: File): Boolean = {
+    final def isARepository(folder: File): Option[File] = {
         val repoFile = folder/getDirectoryName()
         if (repoFile.isDirectory()) {
-            return true
+            Some(repoFile)
         } else {
             val parent = folder.parent
-            if (parent == null) return false
+            if (parent == null) return None
             isARepository(parent)
+        }
+    }
+
+    /* Call a function inside a repository, if the repository isn't a
+    valid sgit repository it returns an error as a string.
+    It also inject the path of the issued command as a function parameter. */
+    def callInside(
+        folder: File, 
+        args: List[String],
+        func: (File, File, List[String]) => Option[String]): 
+            Option[String] = {
+
+        val commandFolder = File(getCurrentPath())
+
+        Repository.isARepository(folder) match {
+            case Some(repoFolder) => func(repoFolder, commandFolder, args)
+            case _ => Some("Not a sgit repository.")
         }
     }
 
@@ -42,8 +59,9 @@ object IORepository {
 
     @impure
     def init(folder: File): Either[String, File] = {
-        if (Repository.isARepository(folder)) {
-            return Left("This is already an sgit repository.")
+        Repository.isARepository(folder) match {
+            case Some(_) => return Left("This is already an sgit repository.")
+            case None =>
         }
 
         val master = new Branch("master", NoParentCommit)
@@ -67,5 +85,10 @@ object IORepository {
         IOBranch.writeAll(heads, branches)
 
         Right(repoFolder)
+    }
+
+    @impure
+    def add(folder: File, commandFolder: File, args: List[String]): Option[String] = {
+        None
     }
 }
