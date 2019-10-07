@@ -12,31 +12,34 @@ class RepositorySpec extends FlatSpec {
 
   it should "be written on disk" in {
     val repo = IORepositoryTest.init()
-    assert(repo.file.isDirectory())
+    assert(repo.isDirectory())
+    IORepositoryTest.delete(repo)
+  }
+
+  it should "create an empty index file" in {
+    val repo = IORepositoryTest.init()
+    val index = repo/Repository.getIndexPath()
+    assert(index.isRegularFile)
     IORepositoryTest.delete(repo)
   }
 
   it should "have a refs folder" in {
     val repo = IORepositoryTest.init()
-    assert(repo.getRefsFile().isDirectory())
+    val refs = repo/Repository.getRefsPath()
+    assert(refs.isDirectory())
     IORepositoryTest.delete(repo)
   }
 
   it should "have a refs/heads folder" in {
     val repo = IORepositoryTest.init()
-    assert(repo.getHeadsFile().isDirectory())
+    val head = repo/Repository.getHeadsPath()
+    assert(head.isDirectory())
     IORepositoryTest.delete(repo)
   }
 
-  it should "have it's head set to the master branch after initialization" in {
+  it should "have it's head set to master in the HEAD file" in {
     val repo = IORepositoryTest.init()
-    assert(repo.head.name == "master")
-    IORepositoryTest.delete(repo)
-  }
-
-  it should "write it's head in the HEAD file" in {
-    val repo = IORepositoryTest.init()
-    val head = repo.getHeadFile()
+    val head = repo/Repository.getHeadPath()
     val text = head.lines().toList
     assert(text(0) == "master")
     IORepositoryTest.delete(repo)
@@ -44,57 +47,38 @@ class RepositorySpec extends FlatSpec {
 
   it should "have it's master branch written after initialization" in {
     val repo = IORepositoryTest.init()
-    val heads = repo.getHeadsFile()
+    val heads = repo/Repository.getHeadsPath()
     val master = heads/"master"
     assert(master.isRegularFile)
     IORepositoryTest.delete(repo)
   }
 
-  it should "have all it's branch correctly written" in {
-    val file = IORepositoryTest.getRepositoryFile()
-    val branches = List(
-      new Branch("1", NoParentCommit),
-      new Branch("2", NoParentCommit),
-      new Branch("3", NoParentCommit)
-    )
-    val repo = new Repository(file, branches(0), branches)
-    val heads = repo.getHeadsFile()
-    IORepository.write(repo)
-    branches.foreach( (branch) => {
-      val branchFile = heads/branch.name
-      assert(branchFile.isRegularFile)
-    })
-    IORepositoryTest.delete(repo)
-  }
+  it should "provide an error message if trying to init inside an sgit repo" in {
+    val folder = Test.getRandomFolder()
+    IORepository.init(folder)
+    val error = IORepository.init(folder)
+    IOTest.delete(folder)
 
-  it should "provide an error message if this is already an sgit repo" in {
-    val file = IORepositoryTest.getRepositoryFile()
-    val repo1 = IORepository.init(file).getOrElse(fail())
-    val repo2 = IORepository.init(file)
-    IORepositoryTest.delete(repo1)
-
-    repo2 match {
-      case Right(x) => {
-        IORepositoryTest.delete(x)
+    error match {
+      case Right(_) => {
         fail("Repository was still created")
       }
       case _ => succeed
     }
   }
 
-  it should "provide an error message if there is a parent sgit repo" in {
-    val file = IORepositoryTest.getRepositoryFile()
-    val repo1 = IORepository.init(file).getOrElse(fail())
+  it should "provide an error message if trying to init inside a nested fodler of an sgit repo" in {
+    val folder = Test.getRandomFolder()
+    IORepository.init(folder)
 
-    val nestedDirs = file.parent/"nestedDir"/"anotherOne"
+    val nestedDirs = folder/"nestedDir"/"anotherOne"
     nestedDirs.createDirectories()
 
-    val repo2 = IORepository.init(nestedDirs)
-    IORepositoryTest.delete(repo1)
+    val either = IORepository.init(nestedDirs)
+    IOTest.delete(folder)
 
-    repo2 match {
-      case Right(x) => {
-        IORepositoryTest.delete(x)
+    either match {
+      case Right(_) => {
         fail("Repository was still created")
       }
       case _ => succeed
@@ -103,8 +87,7 @@ class RepositorySpec extends FlatSpec {
 
   it should "be destroyable for tests" in {
     val repo = IORepositoryTest.init()
-    val file = repo.file
     IORepositoryTest.delete(repo)
-    assert(file.isDirectory() == false)
+    assert(repo.isDirectory() == false)
   }
 }

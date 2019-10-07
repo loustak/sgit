@@ -13,7 +13,7 @@ class BranchSpec extends FlatSpec {
   }
 
   it should "be writable" in {
-    val testFile = Test.getRandomFile()
+    val testFile = Test.getRandomFolder()
     testFile.createDirectories()
     val branchName = "master"
     val branch = new Branch(branchName, NoParentCommit)
@@ -25,7 +25,7 @@ class BranchSpec extends FlatSpec {
   }
 
   it should "be multi writable" in {
-    val testFile = Test.getRandomFile()
+    val testFile = Test.getRandomFolder()
     testFile.createDirectories()
     val branchName = List("1", "2", "3")
     val branches = branchName.map( (name) => {
@@ -43,7 +43,7 @@ class BranchSpec extends FlatSpec {
   }
 
   it should "be readable" in {
-    val testFile = Test.getRandomFile()
+    val testFile = Test.getRandomFolder()
     testFile.createDirectories()
     val branchName = "master"
     val writedBranch = new Branch(branchName, NoParentCommit)

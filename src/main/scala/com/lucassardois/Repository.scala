@@ -7,76 +7,65 @@ object Repository {
 
     def getDirectoryName(): String = ".sgit"
 
-    def getCurrentFolder(): String = {
+    def getCurrentPath(): String = {
         System.getProperty("user.dir")
     }
 
     def getRepositoryPath(): String = {
-        getCurrentFolder() + "/" + getDirectoryName()
+        getCurrentPath() + "/" + getDirectoryName()
     }
 
     /* Return wether or not a sgit repository
         exists at the given path if not, check for parent */
     @tailrec
-    def isARepository(file: File): Boolean = {
-        val repoFile = file/getDirectoryName()
+    final def isARepository(folder: File): Boolean = {
+        val repoFile = folder/getDirectoryName()
         if (repoFile.isDirectory()) {
             return true
         } else {
-            val parent = file.parent
+            val parent = folder.parent
             if (parent == null) return false
             isARepository(parent)
         }
     }
-}
 
-class Repository(
-    val file: File,
-    val head: Branch,
-    val branches: List[Branch]
-    ) {
+    def getRefsPath(): String = "refs"
 
-    def getRefsFile(): File = file/"refs"
+    def getHeadsPath(): String = getRefsPath() + "/heads"
 
-    def getHeadsFile(): File = getRefsFile()/"heads"
+    def getHeadPath(): String = "HEAD"
 
-    def getHeadFile(): File = file/"HEAD"
+    def getIndexPath(): String = "index"
 }
 
 object IORepository {
 
     @impure
-    def init(file: File): Either[String, Repository] = {
-        if (Repository.isARepository(file)) {
+    def init(folder: File): Either[String, File] = {
+        if (Repository.isARepository(folder)) {
             return Left("This is already an sgit repository.")
         }
 
         val master = new Branch("master", NoParentCommit)
         val branches = List(master)
 
-        val repo = new Repository(file, master, branches)
+        // Create the repository folder
+        val repoFolder = folder/Repository.getDirectoryName()
+        repoFolder.createDirectories()
 
-        IORepository.write(repo)
-        Right(repo)
-    }
+        // Create the index file
+        val index = repoFolder/Repository.getIndexPath()
+        index.createFile()
 
-    /* Try to load the repository */
-    @impure
-    def initFromFolder(file: File): Either[String, Repository] = {
-        if (!Repository.isARepository(file)) {
-            return Left("Abort, not a sgit repository.")
-        }
-        return Left("lol")
-    }
+        // Write the head
+        val head = repoFolder/Repository.getHeadPath()
+        head.write(master.name.toString())
 
-    /* Unpure function wich write the repository to the disk. */
-    @impure
-    def write(repo: Repository) = {
-        repo.file.createDirectories()
-        val heads = repo.getHeadsFile()
+        // Write the ref/heads and branches
+        val heads = repoFolder/Repository.getHeadsPath()
         heads.createDirectories()
-        val head = repo.getHeadFile()
-        head.write(repo.head.name.toString())
-        IOBranch.writeAll(repo.getHeadsFile(), repo.branches)
+        IOBranch.writeAll(heads, branches)
+
+        Right(repoFolder)
     }
 }

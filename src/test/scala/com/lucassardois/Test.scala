@@ -5,7 +5,15 @@ import java.util.UUID.randomUUID
 
 object Test {
 
-    def getFile(): File = File("test")
+    def getTestFolder(): File = File("test")
 
-    def getRandomFile(): File = getFile()/randomUUID().toString()
+    def getRandomFolder(): File = getTestFolder()/randomUUID().toString()
+}
+
+object IOTest {
+
+    @impure
+    def delete(file: File): Unit = {
+        file.delete()
+    }
 }
