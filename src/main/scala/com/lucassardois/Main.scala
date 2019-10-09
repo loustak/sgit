@@ -30,6 +30,14 @@ object Main {
           call(config, IORepository.add)
         }
 
+        case "rm" => {
+          call(config, IORepository.remove)
+        }
+
+        case "status" => {
+          call(config, IORepository.status)
+        }
+
         case _ =>
       }
       case _ => print("Invalid command.")
