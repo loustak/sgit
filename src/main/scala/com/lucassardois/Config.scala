@@ -5,7 +5,7 @@ import better.files._
 case class Config(
     mode: String = "",
     commitMessage: String = "",
-    paths: Array[String] = Array(),
+    paths: List[String] = Nil,
     patch: Boolean = false,
     stat: Boolean = false,
     tagName: String = "",

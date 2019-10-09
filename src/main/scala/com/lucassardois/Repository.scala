@@ -52,8 +52,8 @@ object Repository {
         }
     }
 
-    def pathFromRepo(repoFolder: File, file: File): String = {
-        file.pathAsString.replace(repoFolder.pathAsString + "/", "")
+    def relativePathFromRepo(repoFolder: File, file: File): String = {
+        file.pathAsString.replace(repoFolder.parent.pathAsString + "/", "")
     }
 
     def getRefsPath(): String = "refs"
@@ -96,106 +96,4 @@ object IORepository {
 
         Right(repoFolder)
     }
-
-    /** Try to read the index file of the repository. It either return an
-     *  error or a typle containing the repository file and the map index.
-     */
-    def readIndex(repoFolder: File): Either[String, (File, Type.MapIndex)] = {
-        val indexFile = repoFolder/Repository.getIndexPath()
-
-        if (!indexFile.exists) {
-            return Left("Repository is corrupt: index file doesn't exists.")
-        }
-
-        val lines = indexFile.lines().toList
-        val either = readIndexRec(lines, Map())
-
-        either match {
-            case Left(error) => Left(error)
-            case Right(map) => {
-                Right((indexFile, map))
-            }
-        }
-    }
-
-    @tailrec
-    def readIndexRec(lines: List[String], map: Type.MapIndex): Either[String, Type.MapIndex] = {
-        if (lines == Nil) return Right(map)
-        else {
-            val split = lines.head.split(" ")
-            if (split.length < 2) {
-                return Left("Index file is invalid.")
-            }
-
-            val path = split(0)
-            val sha = split(1)
-            val newMap = Map((path -> sha)) ++ map
-
-            readIndexRec(lines.tail, newMap) 
-        }
-    }
-
-    @impure
-    def writeIndex(repoFolder: File, mapIndex: Type.MapIndex): Unit = {
-        val indexFile = repoFolder/Repository.getIndexPath()
-        indexFile.clear() 
-
-        mapIndex.keys.foreach( (path) => {
-            val str = path + " " + mapIndex(path)
-            indexFile.appendLine(str)
-        })
-    }
-
-    @impure
-    def add(repoFolder: File, commandFolder: File, args: Config): Option[String] = {
-        readIndex(repoFolder) match {
-            case Left(error) => Some(error)
-            case Right(value) => {
-
-                val files = args.paths.map( (path) => File(path))
-                val mapIndex = files.map( (file) => {
-                    File(file)
-                })
-
-                writeIndex(repoFolder, mapIndex)
-
-                None
-            }
-        }
-    }
-
-    def addRec(repoFolder: File, files: List[File]): Type.MapIndex = {
-        if (files == Nil) return Nil
-
-        val file = files.head
-        val path = Repository.pathFromRepo(repoFolder, file)
-
-        addRec(repoFolder, files.tail)
-    }
-
-    @impure
-    def remove(repoFolder: File, commandFolder: File, args: Config): Option[String] = {
-        val either = readIndex(repoFolder) 
-        either match {
-            case Left(error) => Some(error)
-            case Right(value) => {
-                val indexFile = value._1
-                val indexMap = value._2
-
-                val paths = args.paths
-
-                println(indexMap.toString())
-                val newMap = indexMap.filter( (tuple) => {
-                    !(paths contains tuple._2)
-                })
-                println(newMap.toString())
-
-                writeIndex(repoFolder, newMap)
-
-                None
-            }
-        }
-    }
-
-    def status(repoFolder: File, commandFolder: File, args: Config): Option[String] = ???
 }

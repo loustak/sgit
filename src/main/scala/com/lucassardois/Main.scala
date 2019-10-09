@@ -27,15 +27,13 @@ object Main {
         }
 
         case "add" => {
-          call(config, IORepository.add)
+          call(config, IOIndex.add)
         }
 
         case "rm" => {
-          call(config, IORepository.remove)
         }
 
         case "status" => {
-          call(config, IORepository.status)
         }
 
         case _ =>
