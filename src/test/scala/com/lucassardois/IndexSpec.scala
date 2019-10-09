@@ -8,7 +8,6 @@ class IndexSpec extends FlatSpec {
     "A repository index" should "be able to add files" in {
         val repo = IORepositoryTest.init()
         val file = Test.createRandomFile(repo.parent)
-        val fileName = file.name
 
         val error = IOIndex.add(
             repo,
@@ -62,6 +61,8 @@ class IndexSpec extends FlatSpec {
             case Some(error) => succeed
             case _ => fail("No error message returned...")
         }
+
+        IORepositoryTest.delete(repo)
     }
 
     it should "be readable" in {
@@ -101,6 +102,55 @@ class IndexSpec extends FlatSpec {
 
                 assert(mapIndex.size == files.size)
             }
+        }
+
+        IORepositoryTest.delete(repo)
+    }
+
+    it should "be able to remove previously added files" in {
+        val repo = IORepositoryTest.init()
+        val file = Test.createRandomFile(repo.parent)
+
+       IOIndex.add(
+            repo,
+            repo.parent,
+            Config(paths = List(file.pathAsString))
+       ) match {
+           case Some(error) => fail(error)
+           case _ =>
+       }
+
+        IOIndex.remove(
+            repo,
+            repo.parent,
+            Config(paths = List(file.pathAsString))
+        ) match {
+            case Some(error) => fail(error)
+            case _ =>
+        }
+
+        val index = repo/Repository.getIndexPath()
+        if (!index.exists) {
+            fail("The index doesn't exists")
+        }
+
+        val lines = index.lines().toList
+        assert(lines.size == 0)
+
+        IORepositoryTest.delete(repo)
+    }
+
+    it should "returns an error when removing non tracked files" in {
+        val repo = IORepositoryTest.init()
+        val file = Test.createRandomFile(repo.parent)
+
+        IOIndex.remove(
+            repo,
+            repo.parent,
+            Config(paths = List(file.pathAsString))
+        ) match {
+            case Some(error) => succeed
+            case _ => fail("Files where still added")
         }
 
         IORepositoryTest.delete(repo)

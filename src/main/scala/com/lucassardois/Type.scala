@@ -2,5 +2,6 @@ package com.lucassardois
 
 object Type {
 
-    type MapIndex = Map[String, String]
+    type StagedFile = Index.StagedFile
+    type MapIndex = Index.MapIndex
 }

@@ -6,16 +6,16 @@ import better.files.File
 
 import scala.annotation.tailrec
 
-object IndexedFile {
+object StagedFile {
 
-    def createFromPath(repoFolder: File, path: String): (String, String) = {
+    def createFromPath(repoFolder: File, path: String): Index.StagedFile = {
         val file = File(path)
         val relativePath = Repository.relativePathFromRepo(repoFolder, file)
         val sha = file.sha256
         (relativePath, sha)
     }
 
-    def pathsToIndexedFile(repoFolder: File, paths: List[String]): Either[String, List[(String, String)]] = {
+    def createAllFromPath(repoFolder: File, paths: List[String]): Either[String, List[Index.StagedFile]] = {
         try {
             val indexedFiles = paths.map((path) => {
                 createFromPath(repoFolder, path)
@@ -29,12 +29,28 @@ object IndexedFile {
 
 object Index {
 
+    type StagedFile = (String, String)
+
+    type MapIndex = Map[String, String]
+
     @tailrec
-    def addAll(mapIndex: Type.MapIndex, files: List[(String, String)]): Type.MapIndex = {
+    def addAll(mapIndex: Type.MapIndex, files: List[StagedFile]): MapIndex = {
         if (files == Nil) return mapIndex
         val file = files.head
         val newMapIndex = mapIndex + (file._1 -> file._2)
         addAll(newMapIndex, files.tail)
+    }
+
+    @tailrec
+    def removeAll(mapIndex: MapIndex, files: List[StagedFile]): Either[String, MapIndex] = {
+        if (files == Nil) return Right(mapIndex)
+        val file = files.head
+        val path = file._1
+        if (!(mapIndex contains path)) {
+            return Left(path + ": isn't tracked by sgit.")
+        }
+        val newMapIndex = mapIndex - path
+        removeAll(newMapIndex, files.tail)
     }
 }
 
@@ -43,7 +59,7 @@ object IOIndex {
     /* The index file of the repository. It either return an
     *  error or a tuple containing the repository file and the map index.
     */
-    def read(repoFolder: File): Either[String, Map[String, String]] = {
+    def read(repoFolder: File): Either[String, Index.MapIndex] = {
         val indexFile = repoFolder/Repository.getIndexPath()
 
         if (!indexFile.exists) {
@@ -76,18 +92,6 @@ object IOIndex {
         }
     }
 
-    def readAndIndex(repoFolder: File, pathsToIndex: List[String]): Either[String, List[(String, String)]] = {
-        read(repoFolder) match {
-            case Left(error) => Left(error)
-            case Right(mapIndex) => {
-                IndexedFile.pathsToIndexedFile(repoFolder, pathsToIndex) match {
-                    case Left(error) => Left(error)
-                    case Right(indexedFiles) => Right(indexedFiles)
-                }
-            }
-        }
-    }
-
     @impure
     def write(repoFolder: File, mapIndex: Type.MapIndex): Option[String] = {
         try {
@@ -105,48 +109,29 @@ object IOIndex {
         }
     }
 
-    def chainEither[T](either: Either[String, T], func: (T) => Option[String]): Option[String] = {
-        either match {
-            case Left(error) => Some(error)
-            case Right(value) => func(value)
-        }
-    }
-
     @impure
     def add(repoFolder: File, commandFolder: File, args: Config): Option[String] = {
         Chain(read(repoFolder), (mapIndex: Type.MapIndex) => {
-            Chain(IndexedFile.pathsToIndexedFile(repoFolder, args.paths), (filesToIndex: List[(String, String)]) => {
-                val newIndex = Index.addAll(mapIndex, filesToIndex)
+            Chain(StagedFile.createAllFromPath(repoFolder, args.paths), (filesToAdd: List[Index.StagedFile]) => {
+                val newIndex = Index.addAll(mapIndex, filesToAdd)
                 write(repoFolder, newIndex)
             })
         })
     }
 
-    /*
     @impure
     def remove(repoFolder: File, commandFolder: File, args: Config): Option[String] = {
-        val either = read(repoFolder)
-        either match {
-            case Left(error) => Some(error)
-            case Right(value) => {
-                val indexFile = value._1
-                val indexMap = value._2
-
-                val paths = args.paths
-
-                println(indexMap.toString())
-                val newMap = indexMap.filter( (tuple) => {
-                    !(paths contains tuple._2)
+        Chain(read(repoFolder), (mapIndex: Type.MapIndex) => {
+            Chain(StagedFile.createAllFromPath(repoFolder, args.paths), (filesToRemove: List[Index.StagedFile]) => {
+                Chain(Index.removeAll(mapIndex, filesToRemove), (newIndex: Type.MapIndex) => {
+                    println(newIndex)
+                    write(repoFolder, newIndex)
                 })
-                println(newMap.toString())
-
-                write(repoFolder, newMap)
-
-                None
-            }
-        }
+            })
+        })
     }
 
+    /*
     def status(repoFolder: File, commandFolder: File, args: Config): Option[String] = ???
     */
 }

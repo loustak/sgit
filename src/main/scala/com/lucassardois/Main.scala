@@ -31,6 +31,7 @@ object Main {
         }
 
         case "rm" => {
+          call(config, IOIndex.remove)
         }
 
         case "status" => {
@@ -38,7 +39,7 @@ object Main {
 
         case _ =>
       }
-      case _ => print("Invalid command.")
+      case _ => print("Unknown command.")
     }
   }
 }
