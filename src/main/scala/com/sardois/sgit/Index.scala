@@ -96,6 +96,15 @@ object Index {
 
 object IOIndex {
 
+    def getIndexFile(repoFolder: File): Either[String, File] = {
+        try {
+            val indexFile = repoFolder/Repository.getIndexPath()
+            Right(indexFile)
+        } catch {
+            case ex: IOException => Left(ex.getMessage)
+        }
+    }
+
     /* The index file of the repository. It either return an
     *  error or a tuple containing the repository file and the map index.
     */
@@ -149,8 +158,20 @@ object IOIndex {
         }
     }
 
+    implicit  class ChainableEither[A, B](e: Either[A, B]) {
+        def next[C, D](func: (B) => Option[A]): Option[A] = {
+            e match {
+                case Left(error) => Some(error)
+                case Right(value) => func(value)
+            }
+        }
+    }
+
     @impure
     def add(repoFolder: File, commandFolder: File, args: Config): Option[String] = {
+
+
+
         Chain(read(repoFolder), (mapIndex: Type.MapIndex) => {
             Chain(StagedFile.createAllFromPath(repoFolder, args.paths), (stagedFilesToAdd: List[Index.StagedFile]) => {
                 val newIndex = Index.addAll(mapIndex, stagedFilesToAdd)
