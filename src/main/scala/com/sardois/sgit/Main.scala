@@ -1,6 +1,6 @@
-package com.lucassardois
+package com.sardois.sgit
 
-import better.files._
+import better.files.File
 
 object Main {
 
@@ -12,7 +12,7 @@ object Main {
       case _ =>
     }
   }
-  
+
   def main(args : Array[String]): Unit = {
     Parser().parse(args, Config()) match {
       case Some(config) => config.mode match {

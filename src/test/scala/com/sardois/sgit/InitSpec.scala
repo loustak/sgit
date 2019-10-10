@@ -1,7 +1,6 @@
-package com.lucassardois
+package com.sardois.sgit
 
 import org.scalatest._
-import better.files._
 
 class InitSpec extends FlatSpec {
 
@@ -17,6 +16,14 @@ class InitSpec extends FlatSpec {
         assert(index.isRegularFile)
         val lines = index.contentAsString()
         assert(lines == "")
+        IORepositoryTest.delete(repo)
+    }
+
+    it should "have an empty objects folder" in {
+        val repo = IORepositoryTest.init()
+        val blobs = repo/Repository.getBlobsPath()
+        assert(blobs.isDirectory)
+        assert(blobs.isEmpty)
         IORepositoryTest.delete(repo)
     }
 
@@ -47,6 +54,14 @@ class InitSpec extends FlatSpec {
         val heads = repo/Repository.getHeadsPath()
         val master = heads/"master"
         assert(master.isRegularFile)
+        IORepositoryTest.delete(repo)
+    }
+
+    it should "have a refs/tags empty folder" in {
+        val repo = IORepositoryTest.init()
+        val tags = repo/Repository.getTagsPath()
+        assert(tags.isDirectory)
+        assert(tags.isEmpty)
         IORepositoryTest.delete(repo)
     }
 

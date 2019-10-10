@@ -1,6 +1,7 @@
-package com.lucassardois
+package com.sardois.sgit
 
 import better.files._
+
 import scala.annotation.tailrec
 
 object Repository {
@@ -69,11 +70,15 @@ object Repository {
 
     def getRefsPath(): String = "refs"
 
-    def getHeadsPath(): String = getRefsPath() + "/heads"
-
     def getHeadPath(): String = "HEAD"
 
     def getIndexPath(): String = "index"
+
+    def getHeadsPath(): String = getRefsPath() + "/heads"
+
+    def getTagsPath(): String = getRefsPath() + "/tags"
+
+    def getBlobsPath(): String = "blobs"
 }
 
 object IORepository {
@@ -92,6 +97,10 @@ object IORepository {
         val repoFolder = folder/Repository.getDirectoryName()
         repoFolder.createDirectories()
 
+        // Create the blobs folder
+        val blobsFolder = repoFolder/Repository.getBlobsPath()
+        blobsFolder.createDirectories()
+
         // Create the index file
         val index = repoFolder/Repository.getIndexPath()
         index.createFile()
@@ -104,6 +113,10 @@ object IORepository {
         val heads = repoFolder/Repository.getHeadsPath()
         heads.createDirectories()
         IOBranch.writeAll(heads, branches)
+
+        // Create the tags folder
+        val tags = repoFolder/Repository.getTagsPath()
+        tags.createDirectories()
 
         Right(repoFolder)
     }

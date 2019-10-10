@@ -1,7 +1,7 @@
-package com.lucassardois
+package com.sardois.sgit
 
 import better.files._
-import java.util.UUID.randomUUID
+
 import scala.annotation.tailrec
 
 object Test {
@@ -12,7 +12,14 @@ object Test {
     @tailrec
     def getRandomFolder(): File = {
         val file = getTestFolder()/("test-" + randomNumberString(8))
-        if (file.exists) return getRandomFolder()
+        if (file.exists) getRandomFolder()
+        else file
+    }
+
+    @tailrec
+    def getRandomFile(folder: File): File = {
+        val file = folder/("file-" + randomString(8))
+        if (file.exists) getRandomFile(folder)
         else file
     }
 
@@ -23,21 +30,18 @@ object Test {
     def randomString(length: Int): String = {
         scala.util.Random.alphanumeric.filter(_.isLetter).take(length).mkString
     }
-
-    /** Create a random file with a random content.
-    * The content is a random string with no guarentee. */
-    @impure
-    @tailrec
-    def createRandomFile(folder: File): File = {
-        val file = folder/("file-" + randomString(8))
-        if (file.exists) return createRandomFile(folder)
-        else {
-            file.write(randomString(20))
-        }
-    }
 }
 
 object IOTest {
+
+    /** Create a random file with a random content.
+     * The content is a random string with no guarantee.
+     * */
+    @impure
+    def createRandomFile(folder: File): File = {
+        val file = Test.getRandomFile(folder)
+        file.write(Test.randomString(20))
+    }
 
     @impure
     def delete(file: File): Unit = {

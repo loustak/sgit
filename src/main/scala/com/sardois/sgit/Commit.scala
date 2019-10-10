@@ -1,4 +1,4 @@
-package com.lucassardois
+package com.sardois.sgit
 
 /* The root commit of the tree */
 object NoParentCommit extends Commit {

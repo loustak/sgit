@@ -1,6 +1,4 @@
-package com.lucassardois
-
-import scala.annotation.meta._
+package com.sardois.sgit
 
 /**
  * An annotation that designates that a method

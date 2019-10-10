@@ -1,8 +1,6 @@
-package com.lucassardois
+package com.sardois.sgit
 
 import org.scalatest._
-import better.files._
-import java.util.UUID.randomUUID
 
 class BranchSpec extends FlatSpec {
 

@@ -1,6 +1,4 @@
-package com.lucassardois
-
-import better.files._
+package com.sardois.sgit
 
 case class Config(
     mode: String = "",

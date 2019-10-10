@@ -1,8 +1,7 @@
-package com.lucassardois
+package com.sardois.sgit
 
-import org.scalatest._
 import better.files._
-import java.util.UUID.randomUUID
+import org.scalatest._
 
 object IORepositoryTest extends FlatSpec {
 

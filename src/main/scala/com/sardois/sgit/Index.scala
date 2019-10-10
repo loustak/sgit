@@ -1,6 +1,6 @@
-package com.lucassardois
+package com.sardois.sgit
 
-import java.io.{FileNotFoundException, IOException}
+import java.io.IOException
 
 import better.files.File
 
@@ -10,7 +10,7 @@ object StagedFile {
 
     def createFromFile(repoFolder: File, file: File): Index.StagedFile = {
         val relativePath = Repository.relativePathFromRepo(repoFolder, file)
-        val sha = file.sha256
+        val sha = Util.shaFile(file)
         (relativePath, sha)
     }
 
@@ -152,9 +152,18 @@ object IOIndex {
     @impure
     def add(repoFolder: File, commandFolder: File, args: Config): Option[String] = {
         Chain(read(repoFolder), (mapIndex: Type.MapIndex) => {
-            Chain(StagedFile.createAllFromPath(repoFolder, args.paths), (filesToAdd: List[Index.StagedFile]) => {
-                val newIndex = Index.addAll(mapIndex, filesToAdd)
+            Chain(StagedFile.createAllFromPath(repoFolder, args.paths), (stagedFilesToAdd: List[Index.StagedFile]) => {
+                val newIndex = Index.addAll(mapIndex, stagedFilesToAdd)
                 write(repoFolder, newIndex)
+
+                /*
+                val files = stagedFilesToAdd.map( (stagedFile) => {
+                    File(stagedFile._2)
+                })
+                Chain(IOBlob.getBlobsFolder(repoFolder), (blobsFolder: File) => {
+                    IOBlob.writeAll(blobsFolder, files)
+                })
+                */
             })
         })
     }

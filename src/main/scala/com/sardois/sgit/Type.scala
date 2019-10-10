@@ -1,4 +1,4 @@
-package com.lucassardois
+package com.sardois.sgit
 
 object Type {
 

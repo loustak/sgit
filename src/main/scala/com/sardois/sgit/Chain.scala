@@ -1,4 +1,4 @@
-package com.lucassardois
+package com.sardois.sgit
 
 /** Helper functions to chain Either calls  */
 class Chain[A, B](e: Either[A, B]) {

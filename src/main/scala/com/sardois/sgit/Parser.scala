@@ -1,6 +1,5 @@
-package com.lucassardois
+package com.sardois.sgit
 
-import better.files._
 import scopt.OptionParser
 
 object Parser {
