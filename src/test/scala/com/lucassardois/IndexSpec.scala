@@ -2,6 +2,7 @@ package com.lucassardois
 
 import org.scalatest._
 import better.files._
+import com.lucassardois.IOIndex.read
 
 class IndexSpec extends FlatSpec {
 
@@ -151,6 +152,47 @@ class IndexSpec extends FlatSpec {
         ) match {
             case Some(error) => succeed
             case _ => fail("Files where still added")
+        }
+
+        IORepositoryTest.delete(repo)
+    }
+
+    it should "not stage directories, .sgit folder and the parent repository folder" in {
+        val repo = IORepositoryTest.init()
+        val dir = (repo.parent/"dir").createDirectories()
+        val nested = (dir/"nested").createDirectories()
+
+        Test.createRandomFile(repo)
+        Test.createRandomFile(repo.parent)
+        Test.createRandomFile(dir)
+        Test.createRandomFile(nested)
+
+        val files = Repository.list(repo)
+        StagedFile.createAllFromFiles(repo, files) match {
+            case Left(error) => fail(error)
+            case Right(stagedFiles) => {
+               assert(stagedFiles.size == 3)
+            }
+        }
+
+        IORepositoryTest.delete(repo)
+    }
+
+    it should "returns the list of untracked files" in {
+        val repo = IORepositoryTest.init()
+        val dir = (repo.parent/"dir").createDirectories()
+        Test.createRandomFile(repo.parent)
+        Test.createRandomFile(dir)
+
+        val mapIndex = Map[String, String]()
+        val files = Repository.list(repo)
+
+        StagedFile.createAllFromFiles(repo, files) match {
+            case Left(error) => fail(error)
+            case Right(stagedFiles) => {
+                val untrackedFiles = Index.listUntrackedFiles(mapIndex, stagedFiles)
+                assert(untrackedFiles.size == 2)
+            }
         }
 
         IORepositoryTest.delete(repo)

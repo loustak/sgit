@@ -8,19 +8,40 @@ import scala.annotation.tailrec
 
 object StagedFile {
 
-    def createFromPath(repoFolder: File, path: String): Index.StagedFile = {
-        val file = File(path)
+    def createFromFile(repoFolder: File, file: File): Index.StagedFile = {
         val relativePath = Repository.relativePathFromRepo(repoFolder, file)
         val sha = file.sha256
         (relativePath, sha)
     }
 
+    def createAllFromFiles(repoFolder: File, files: List[File]): Either[String, List[Index.StagedFile]]= {
+        try {
+            val filteredFiles = files.filter( (file) => {
+                !file.isDirectory
+            })
+
+            val indexedFiles = filteredFiles.map( (file) => {
+                createFromFile(repoFolder, file)
+            })
+
+            Right(indexedFiles)
+        } catch {
+            case ex: IOException => Left(ex.getMessage)
+        }
+    }
+
+    def createFromPath(repoFolder: File, path: String): Index.StagedFile = {
+        val file = File(path)
+        createFromFile(repoFolder, file)
+    }
+
     def createAllFromPath(repoFolder: File, paths: List[String]): Either[String, List[Index.StagedFile]] = {
         try {
-            val indexedFiles = paths.map((path) => {
-                createFromPath(repoFolder, path)
+            val files = paths.map( (path) => {
+                File(path)
             })
-            Right(indexedFiles)
+
+            createAllFromFiles(repoFolder, files)
         } catch {
             case ex: IOException => Left(ex.getMessage)
         }
@@ -51,6 +72,25 @@ object Index {
         }
         val newMapIndex = mapIndex - path
         removeAll(newMapIndex, files.tail)
+    }
+
+    /** Return the list of file (by path) not tracked by the index */
+    @tailrec
+    def listUntrackedFiles(mapIndex: MapIndex, files: List[Index.StagedFile], untrackedFiles: List[String] = Nil):
+        List[String] = {
+
+        if (files == Nil) return untrackedFiles
+        val file = files.head
+        val path = file._1
+        if (!mapIndex.isDefinedAt(path))
+            listUntrackedFiles(mapIndex, files.tail, path :: untrackedFiles)
+        else
+            listUntrackedFiles(mapIndex, files.tail, untrackedFiles)
+    }
+
+    /** Return 3 map indexes, changes to be committed, changes not staged, untracked files */
+    def status(mapIndex: MapIndex, files: List[StagedFile]): (MapIndex, MapIndex, List[File]) = {
+        ???
     }
 }
 
@@ -124,9 +164,17 @@ object IOIndex {
         Chain(read(repoFolder), (mapIndex: Type.MapIndex) => {
             Chain(StagedFile.createAllFromPath(repoFolder, args.paths), (filesToRemove: List[Index.StagedFile]) => {
                 Chain(Index.removeAll(mapIndex, filesToRemove), (newIndex: Type.MapIndex) => {
-                    println(newIndex)
                     write(repoFolder, newIndex)
                 })
+            })
+        })
+    }
+
+    @impure
+    def status(repoFolder: File, commandFolder: File, args: Config): Option[String] = {
+        Chain(read(repoFolder), (mapIndex: Type.MapIndex) => {
+            Chain(StagedFile.createAllFromPath(repoFolder, args.paths), (filesToStatus: List[Index.StagedFile]) => {
+                ???
             })
         })
     }

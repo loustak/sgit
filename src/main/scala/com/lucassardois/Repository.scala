@@ -19,8 +19,8 @@ object Repository {
         getCurrentPath() + "/" + getDirectoryName()
     }
 
-    /** Return wether or not a sgit repository
-     *  exists at the given path if not, check for parent
+    /** If it's a sgit repository return the
+     * repository path, else return None.
      */
     @tailrec
     final def isARepository(folder: File): Option[File] = {
@@ -54,6 +54,17 @@ object Repository {
 
     def relativePathFromRepo(repoFolder: File, file: File): String = {
         file.pathAsString.replace(repoFolder.parent.pathAsString + "/", "")
+    }
+
+    /** List recursively all the files and folders inside
+     * the parent folder of the repository.
+     * Doesn't return files and folders inside the the .sgit directory
+     * nor the repository parent directory.
+     * */
+    def list(repoFolder: File): List[File] = {
+        repoFolder.parent.list( (file) => {
+            !(file.isChildOf(repoFolder) || file == repoFolder.parent || file == repoFolder)
+        }).toList
     }
 
     def getRefsPath(): String = "refs"

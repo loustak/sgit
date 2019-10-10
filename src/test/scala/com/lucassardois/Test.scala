@@ -33,7 +33,6 @@ object Test {
         if (file.exists) return createRandomFile(folder)
         else {
             file.write(randomString(20))
-            file
         }
     }
 }
