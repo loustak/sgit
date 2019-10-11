@@ -4,51 +4,29 @@ import java.io.IOException
 import better.files.File
 import scala.annotation.tailrec
 
+class StagedFile(val relativePath: String, val sha: String) {
+
+}
+
 object StagedFile {
 
-    def createFromFile(repoFolder: File, file: File): Index.StagedFile = {
+    def apply(relativePath: String, sha: String): StagedFile = new StagedFile(relativePath, sha)
+
+    def fromFile(repoFolder: File, file: File): StagedFile = {
         val relativePath = Repository.relativePathFromRepo(repoFolder, file)
         val sha = Util.shaFile(file)
-        (relativePath, sha)
+        StagedFile(relativePath, sha)
     }
+}
 
-    def createAllFromFiles(repoFolder: File, files: List[File]): Either[String, List[Index.StagedFile]]= {
-        try {
-            val filteredFiles = files.filter( (file) => {
-                !file.isDirectory
-            })
-
-            val indexedFiles = filteredFiles.map( (file) => {
-                createFromFile(repoFolder, file)
-            })
-
-            Right(indexedFiles)
-        } catch {
-            case ex: IOException => Left(ex.getMessage)
-        }
-    }
-
-    def createFromPath(repoFolder: File, path: String): Index.StagedFile = {
-        val file = File(path)
-        createFromFile(repoFolder, file)
-    }
-
-    def createAllFromPath(repoFolder: File, paths: List[String]): Either[String, List[Index.StagedFile]] = {
-        try {
-            val files = paths.map( (path) => {
-                File(path)
-            })
-
-            createAllFromFiles(repoFolder, files)
-        } catch {
-            case ex: IOException => Left(ex.getMessage)
-        }
+object StagedFiles {
+    
+    def apply(repoFolder: File, files: List[File]): List[StagedFile] = {
+        files.map( file => StagedFile.fromFile(repoFolder, file))
     }
 }
 
 object Index {
-
-    type StagedFile = (String, String)
 
     type MapIndex = Map[String, String]
 
@@ -56,7 +34,7 @@ object Index {
     def addAll(mapIndex: Type.MapIndex, files: List[StagedFile]): MapIndex = {
         if (files == Nil) return mapIndex
         val file = files.head
-        val newMapIndex = mapIndex + (file._1 -> file._2)
+        val newMapIndex = mapIndex + (file.relativePath -> file.sha)
         addAll(newMapIndex, files.tail)
     }
 
@@ -66,7 +44,7 @@ object Index {
             return Right(mapIndex)
         }
         val file = files.head
-        val path = file._1
+        val path = file.relativePath
         if (!(mapIndex contains path)) {
             return Left(path + ": isn't tracked by sgit.")
         }
@@ -76,12 +54,12 @@ object Index {
 
     /** Return the list of file (by path) not tracked by the index */
     @tailrec
-    def listUntrackedFiles(mapIndex: MapIndex, files: List[Index.StagedFile], untrackedFiles: List[String] = Nil):
+    def listUntrackedFiles(mapIndex: MapIndex, files: List[StagedFile], untrackedFiles: List[String] = Nil):
         List[String] = {
 
         if (files == Nil) return untrackedFiles
         val file = files.head
-        val path = file._1
+        val path = file.relativePath
         if (!mapIndex.isDefinedAt(path))
             listUntrackedFiles(mapIndex, files.tail, path :: untrackedFiles)
         else
@@ -148,33 +126,28 @@ object IOIndex {
 
     @impure
     def add(repoFolder: File, commandFolder: File, args: Config): Option[String] = {
-        val either = for {
-            indexFile <- getIndexFile(repoFolder)
-            mapIndex <- read(indexFile)
-            stagedFiles <- StagedFile.createAllFromPath(repoFolder, args.paths)
-            newMapIndex <- Right(Index.addAll(mapIndex, stagedFiles))
-            either <- Util.optionToEither(write(indexFile, newMapIndex))
-        } yield either
+        val files = Util.pathsToFiles(args.paths)
 
-        either match {
-            case Left(error) => Some(error)
-            case _ => None
-        }
+        Util.handleIOException( () => {
+            val either = for {
+                indexFile <- getIndexFile(repoFolder)
+                blobsFolder <- IOBlob.getBlobsFolder(repoFolder)
+
+                mapIndex <- read(indexFile)
+
+                stagedFiles <- Right(StagedFiles(repoFolder, files))
+                newMapIndex <- Right(Index.addAll(mapIndex, stagedFiles))
+
+                writeResult <- Util.optionToEither(write(indexFile, newMapIndex))
+                either <- Util.optionToEither(IOBlob.writeAll(blobsFolder, files))
+            } yield either
+
+            Util.eitherToOption(either)
+        })
     }
 
     @impure
     def remove(repoFolder: File, commandFolder: File, args: Config): Option[String] = {
-        val either = for {
-            indexFile <- getIndexFile(repoFolder)
-            mapIndex <- read(indexFile)
-            filesToRemove <- StagedFile.createAllFromPath(repoFolder, args.paths)
-            newMapIndex <- Index.removeAll(mapIndex, filesToRemove)
-            either <- Util.optionToEither(write(indexFile, newMapIndex))
-        } yield either
-
-        either match {
-            case Left(error) => Some(error)
-            case _ => None
-        }
+        ???
     }
 }

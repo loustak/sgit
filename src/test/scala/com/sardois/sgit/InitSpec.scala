@@ -27,6 +27,14 @@ class InitSpec extends FlatSpec {
         IORepositoryTest.delete(repo)
     }
 
+    it should "have an empty commits folder" in {
+        val repo = IORepositoryTest.init()
+        val commits = repo/Repository.getCommitsPath()
+        assert(commits.isDirectory)
+        assert(commits.isEmpty)
+        IORepositoryTest.delete(repo)
+    }
+
     it should "have a refs folder" in {
         val repo = IORepositoryTest.init()
         val refs = repo/Repository.getRefsPath()

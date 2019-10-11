@@ -79,6 +79,8 @@ object Repository {
     def getTagsPath(): String = getRefsPath() + "/tags"
 
     def getBlobsPath(): String = "blobs"
+
+    def getCommitsPath(): String = "commits"
 }
 
 object IORepository {
@@ -100,6 +102,10 @@ object IORepository {
         // Create the blobs folder
         val blobsFolder = repoFolder/Repository.getBlobsPath()
         blobsFolder.createDirectories()
+
+        // Create the commits folder
+        val commitsFolder = repoFolder/Repository.getCommitsPath()
+        commitsFolder.createDirectories()
 
         // Create the index file
         val index = repoFolder/Repository.getIndexPath()
