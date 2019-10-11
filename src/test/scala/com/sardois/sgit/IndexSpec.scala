@@ -77,12 +77,7 @@ class IndexSpec extends FlatSpec {
             file.pathAsString
         })
 
-        IOIndex.add(
-            repo, repo.parent, Config(paths = filesPath)
-        ) match {
-            case Some(error) => fail(error)
-            case _ =>
-        }
+        IOIndex.add(repo, repo.parent, Config(paths = filesPath))
 
         val tuple = for {
             indexFile <- IOIndex.getIndexFile(repo)
@@ -106,19 +101,10 @@ class IndexSpec extends FlatSpec {
     it should "be able to remove previously added files" in {
         val repo = IORepositoryTest.init()
         val file = IOTest.createRandomFile(repo.parent)
+        val paths = Config(paths = List(file.pathAsString))
 
-        IOIndex.add(
-            repo, repo.parent, Config(paths = List(file.pathAsString))
-        ) match {
-            case Some(error) => fail(error)
-            case _ =>
-        }
-        IOIndex.remove(
-            repo, repo.parent, Config(paths = List(file.pathAsString))
-        ) match {
-            case Some(error) => fail(error)
-            case _ =>
-        }
+        IOIndex.add(repo, repo.parent, paths)
+        IOIndex.remove(repo, repo.parent, paths)
 
         IOIndex.getIndexFile(repo) match {
             case Left(error) => fail(error)

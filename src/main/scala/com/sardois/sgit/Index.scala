@@ -1,9 +1,7 @@
 package com.sardois.sgit
 
 import java.io.IOException
-
 import better.files.File
-
 import scala.annotation.tailrec
 
 object StagedFile {
@@ -64,7 +62,9 @@ object Index {
 
     @tailrec
     def removeAll(mapIndex: MapIndex, files: List[StagedFile]): Either[String, MapIndex] = {
-        if (files == Nil) return Right(mapIndex)
+        if (files == Nil) {
+            return Right(mapIndex)
+        }
         val file = files.head
         val path = file._1
         if (!(mapIndex contains path)) {
@@ -86,11 +86,6 @@ object Index {
             listUntrackedFiles(mapIndex, files.tail, path :: untrackedFiles)
         else
             listUntrackedFiles(mapIndex, files.tail, untrackedFiles)
-    }
-
-    /** Return 3 map indexes, changes to be committed, changes not staged, untracked files */
-    def status(mapIndex: MapIndex, files: List[StagedFile]): (MapIndex, MapIndex, List[File]) = {
-        ???
     }
 }
 
@@ -158,10 +153,7 @@ object IOIndex {
             mapIndex <- read(indexFile)
             stagedFiles <- StagedFile.createAllFromPath(repoFolder, args.paths)
             newMapIndex <- Right(Index.addAll(mapIndex, stagedFiles))
-            either <- write(indexFile, newMapIndex) match {
-                case Some(error) => Left(error)
-                case None => Right(None)
-            }
+            either <- Util.optionToEither(write(indexFile, newMapIndex))
         } yield either
 
         either match {
@@ -175,12 +167,9 @@ object IOIndex {
         val either = for {
             indexFile <- getIndexFile(repoFolder)
             mapIndex <- read(indexFile)
-            filesToUnstage <- StagedFile.createAllFromPath(repoFolder, args.paths)
-            newMapIndex <- Index.removeAll(mapIndex, filesToUnstage)
-            either <- write(repoFolder, newMapIndex) match {
-                case Some(error) => Left(error)
-                case None => Right(None)
-            }
+            filesToRemove <- StagedFile.createAllFromPath(repoFolder, args.paths)
+            newMapIndex <- Index.removeAll(mapIndex, filesToRemove)
+            either <- Util.optionToEither(write(indexFile, newMapIndex))
         } yield either
 
         either match {
@@ -188,17 +177,4 @@ object IOIndex {
             case _ => None
         }
     }
-
-    @impure
-    def status(repoFolder: File, commandFolder: File, args: Config): Option[String] = {
-        Chain(read(repoFolder), (mapIndex: Type.MapIndex) => {
-            Chain(StagedFile.createAllFromPath(repoFolder, args.paths), (filesToStatus: List[Index.StagedFile]) => {
-                ???
-            })
-        })
-    }
-
-    /*
-    def status(repoFolder: File, commandFolder: File, args: Config): Option[String] = ???
-    */
 }

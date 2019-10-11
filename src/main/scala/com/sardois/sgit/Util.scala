@@ -15,5 +15,12 @@ object Util {
             .digest(str.getBytes("UTF-8"))
             .map("%02x".format(_)).mkString
     }
+
+    def optionToEither[A](o: Option[A]): Either[A, Unit] = {
+        o match {
+            case Some(value) => Left(value)
+            case None => Right(None)
+        }
+    }
 }
 
