@@ -87,5 +87,7 @@ class RepositoryIndexSpec extends FlatSpec {
             case Some(value) => fail(value)
             case None =>
         }
+
+        IORepositoryTest.delete(repo)
     }
 }
