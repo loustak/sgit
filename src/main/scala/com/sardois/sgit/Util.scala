@@ -21,6 +21,10 @@ object Util {
         paths.map( path => File(path))
     }
 
+    def filesToPath(files: List[File]): List[String] = {
+        files.map( file => file.pathAsString)
+    }
+
     def handleException(func: () => Option[String]): Option[String] = {
         try {
             func()

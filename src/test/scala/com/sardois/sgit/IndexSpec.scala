@@ -8,9 +8,7 @@ class IndexSpec extends FlatSpec {
         val repo = IORepositoryTest.init()
         val file = IOTest.createRandomFile(repo.parent)
 
-        val error = IOIndex.add(repo, repo.parent, Config(paths = List(file.pathAsString)))
-
-        error match {
+        IOIndex.add(repo, repo.parent, Config(paths = List(file.pathAsString))) match {
             case Some(error) => fail(error)
             case _ =>
         }
@@ -74,25 +72,20 @@ class IndexSpec extends FlatSpec {
             IOTest.createRandomFile(dir)
         )
 
-        val filesPath = files.map( (file) => {
-            file.pathAsString
-        })
-
+        val filesPath = Util.filesToPath(files)
         IOIndex.add(repo, repo.parent, Config(paths = filesPath))
 
         Util.handleException(() => {
             val indexFile = IOIndex.getIndexFile(repo)
-            val mapIndex = IOIndex.read(indexFile)
+            val index = IOIndex.read(indexFile)
 
             assert(indexFile.isRegularFile)
-            assert(mapIndex.size == files.size)
+            assert(index.size == files.size)
 
             None
         }) match {
             case Some(value) => fail(value)
             case None =>
         }
-
-        IORepositoryTest.delete(repo)
     }
 }

@@ -92,8 +92,8 @@ object IORepository {
             case None =>
         }
 
-        val master = new Branch("master", NoParentCommit)
-        val branches = List(master)
+        // val master = new Branch("master", NoParentCommit)
+        // val branches = List(master)
 
         // Create the repository folder
         val repoFolder = folder/Repository.getDirectoryName()
@@ -113,17 +113,25 @@ object IORepository {
 
         // Write the head
         val head = repoFolder/Repository.getHeadPath()
-        head.write(master.name.toString())
+        // head.write(master.name.toString())
 
         // Write the ref/heads and branches
         val heads = repoFolder/Repository.getHeadsPath()
         heads.createDirectories()
-        IOBranch.writeAll(heads, branches)
+        // IOBranch.writeAll(heads, branches)
 
         // Create the tags folder
         val tags = repoFolder/Repository.getTagsPath()
         tags.createDirectories()
 
         Right(repoFolder)
+    }
+
+    /* Returns true if the repository state is not equals
+     * to the index.
+     */
+    def isDirty(repoFolder: File): Boolean = {
+        // TODO: Make this function
+        true
     }
 }

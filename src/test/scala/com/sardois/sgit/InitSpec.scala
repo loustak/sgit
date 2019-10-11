@@ -49,6 +49,7 @@ class InitSpec extends FlatSpec {
         IORepositoryTest.delete(repo)
     }
 
+    /* TODO: Uncomment this
     it should "have it's head set to master in the HEAD file" in {
         val repo = IORepositoryTest.init()
         val head = repo/Repository.getHeadPath()
@@ -64,6 +65,7 @@ class InitSpec extends FlatSpec {
         assert(master.isRegularFile)
         IORepositoryTest.delete(repo)
     }
+    */
 
     it should "have a refs/tags empty folder" in {
         val repo = IORepositoryTest.init()

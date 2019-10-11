@@ -1,7 +1,8 @@
 package com.sardois.sgit
 
-import java.io.IOException
+
 import better.files.File
+
 import scala.annotation.tailrec
 
 class StagedFile(val relativePath: String, val sha: String) {
@@ -26,17 +27,34 @@ object StagedFiles {
     }
 }
 
-object Index {
+class Index(mapIndex: Map[String, String]) {
 
-    type MapIndex = Map[String, String]
+    def size(): Int = mapIndex.size
+
+    def addLine(path: String, sha: String): Index = {
+        Index(mapIndex + (path -> sha))
+    }
 
     @tailrec
-    def addAll(mapIndex: Type.MapIndex, files: List[StagedFile]): MapIndex = {
-        if (files == Nil) return mapIndex
+    final def addAll(files: List[StagedFile], index: Index = this): Index = {
+        if (files == Nil) return index
         val file = files.head
-        val newMapIndex = mapIndex + (file.relativePath -> file.sha)
-        addAll(newMapIndex, files.tail)
+        val path = file.relativePath
+        val sha = file.sha
+        val newIndex = addLine(path, sha)
+        addAll(files.tail, newIndex)
     }
+
+    override def toString: String = {
+        mapIndex.keys.map( path => {
+            path + " " + mapIndex(path)
+        }).mkString(System.lineSeparator())
+    }
+}
+
+object Index {
+
+    def apply(mapIndex: Map[String, String] = Map()): Index = new Index(mapIndex)
 }
 
 object IOIndex {
@@ -45,17 +63,14 @@ object IOIndex {
         repoFolder/Repository.getIndexPath()
     }
 
-    /* The index file of the repository. It either return an
-    *  error or a tuple containing the repository file and the map index.
-    */
-    def read(indexFile: File): Index.MapIndex = {
+    def read(indexFile: File): Index = {
         val lines = indexFile.lines().toList
-        readRec(lines, Map())
+        readRec(lines, Index())
     }
 
     @tailrec
-    def readRec(lines: List[String], map: Type.MapIndex): Type.MapIndex = {
-        if (lines == Nil) return map
+    def readRec(lines: List[String], index: Index): Index = {
+        if (lines == Nil) return index
         else {
             val split = lines.head.split(" ")
             if (split.length < 2) {
@@ -64,20 +79,17 @@ object IOIndex {
 
             val path = split(0)
             val sha = split(1)
-            val newMap = Map((path -> sha)) ++ map
 
-            readRec(lines.tail, newMap)
+            val newIndex = index.addLine(path, sha)
+
+            readRec(lines.tail, newIndex)
         }
     }
 
     @impure
-    def write(indexFile: File, mapIndex: Type.MapIndex): Unit = {
+    def write(indexFile: File, index: Index): Unit = {
         indexFile.clear()
-
-        mapIndex.keys.foreach((path) => {
-            val str = path + " " + mapIndex(path)
-            indexFile.appendLine(str)
-        })
+        indexFile.write(index.toString)
     }
 
     @impure
@@ -88,7 +100,7 @@ object IOIndex {
             val indexFile = getIndexFile(repoFolder)
             val mapIndex = read(indexFile)
             val stagedFiles = StagedFiles(repoFolder, files)
-            val newMapIndex = Index.addAll(mapIndex, stagedFiles)
+            val newMapIndex = mapIndex.addAll(stagedFiles)
 
             write(indexFile, newMapIndex)
             IOBlob.writeAll(blobsFolder, files)
