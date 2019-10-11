@@ -21,11 +21,12 @@ object Util {
         paths.map( path => File(path))
     }
 
-    def handleIOException(func: () => Option[String]): Option[String] = {
+    def handleException(func: () => Option[String]): Option[String] = {
         try {
             func()
         } catch {
             case ex: IOException => Some(ex.getMessage)
+            case ex: IllegalArgumentException => Some(ex.getMessage)
         }
     }
 

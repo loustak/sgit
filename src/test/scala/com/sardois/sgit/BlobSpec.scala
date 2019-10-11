@@ -11,9 +11,12 @@ class BlobSpec extends FlatSpec {
         blobsFolder.createDirectories()
         val file = IOTest.createRandomFile(folder)
 
-        IOBlob.write(blobsFolder, file) match {
-            case Some(error) => fail(error)
-            case _ =>
+        Util.handleException(() => {
+            IOBlob.write(blobsFolder, file)
+            None
+        }) match {
+            case Some(value) => fail(value)
+            case None =>
         }
 
         val fileShaName = blobsFolder/Util.shaFile(file)
@@ -29,9 +32,12 @@ class BlobSpec extends FlatSpec {
         val blobsFolder = (folder/Repository.getBlobsPath()).createDirectories()
         val file = Test.getRandomFile(folder)
 
-        IOBlob.write(blobsFolder, file) match {
-            case Some(error) => succeed
-            case _ => fail("No error message where provided")
+        Util.handleException(() => {
+            IOBlob.write(blobsFolder, file)
+            None
+        }) match {
+            case Some(value) => succeed
+            case None => fail("No error message provided")
         }
 
         IOTest.delete(folder)

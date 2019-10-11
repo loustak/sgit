@@ -37,67 +37,29 @@ object Index {
         val newMapIndex = mapIndex + (file.relativePath -> file.sha)
         addAll(newMapIndex, files.tail)
     }
-
-    @tailrec
-    def removeAll(mapIndex: MapIndex, files: List[StagedFile]): Either[String, MapIndex] = {
-        if (files == Nil) {
-            return Right(mapIndex)
-        }
-        val file = files.head
-        val path = file.relativePath
-        if (!(mapIndex contains path)) {
-            return Left(path + ": isn't tracked by sgit.")
-        }
-        val newMapIndex = mapIndex - path
-        removeAll(newMapIndex, files.tail)
-    }
-
-    /** Return the list of file (by path) not tracked by the index */
-    @tailrec
-    def listUntrackedFiles(mapIndex: MapIndex, files: List[StagedFile], untrackedFiles: List[String] = Nil):
-        List[String] = {
-
-        if (files == Nil) return untrackedFiles
-        val file = files.head
-        val path = file.relativePath
-        if (!mapIndex.isDefinedAt(path))
-            listUntrackedFiles(mapIndex, files.tail, path :: untrackedFiles)
-        else
-            listUntrackedFiles(mapIndex, files.tail, untrackedFiles)
-    }
 }
 
 object IOIndex {
 
-    def getIndexFile(repoFolder: File): Either[String, File] = {
-        try {
-            val indexFile = repoFolder/Repository.getIndexPath()
-            Right(indexFile)
-        } catch {
-            case ex: IOException => Left(ex.getMessage)
-        }
+    def getIndexFile(repoFolder: File): File = {
+        repoFolder/Repository.getIndexPath()
     }
 
     /* The index file of the repository. It either return an
     *  error or a tuple containing the repository file and the map index.
     */
-    def read(indexFile: File): Either[String, Index.MapIndex] = {
+    def read(indexFile: File): Index.MapIndex = {
         val lines = indexFile.lines().toList
-        val either = readRec(lines, Map())
-
-        either match {
-            case Left(error) => Left(error)
-            case Right(map) => Right(map)
-        }
+        readRec(lines, Map())
     }
 
     @tailrec
-    def readRec(lines: List[String], map: Type.MapIndex): Either[String, Type.MapIndex] = {
-        if (lines == Nil) return Right(map)
+    def readRec(lines: List[String], map: Type.MapIndex): Type.MapIndex = {
+        if (lines == Nil) return map
         else {
             val split = lines.head.split(" ")
             if (split.length < 2) {
-                return Left("An entry in the index file is invalid.")
+                throw new IllegalArgumentException("An entry in the index file is invalid")
             }
 
             val path = split(0)
@@ -109,40 +71,29 @@ object IOIndex {
     }
 
     @impure
-    def write(indexFile: File, mapIndex: Type.MapIndex): Option[String] = {
-        try {
-            indexFile.clear()
+    def write(indexFile: File, mapIndex: Type.MapIndex): Unit = {
+        indexFile.clear()
 
-            mapIndex.keys.foreach((path) => {
-                val str = path + " " + mapIndex(path)
-                indexFile.appendLine(str)
-            })
-
-            None
-        } catch {
-            case ex: IOException => Some(ex.getMessage)
-        }
+        mapIndex.keys.foreach((path) => {
+            val str = path + " " + mapIndex(path)
+            indexFile.appendLine(str)
+        })
     }
 
     @impure
     def add(repoFolder: File, commandFolder: File, args: Config): Option[String] = {
-        val files = Util.pathsToFiles(args.paths)
+        Util.handleException( () => {
+            val files = Util.pathsToFiles(args.paths)
+            val blobsFolder = IOBlob.getBlobsFolder(repoFolder)
+            val indexFile = getIndexFile(repoFolder)
+            val mapIndex = read(indexFile)
+            val stagedFiles = StagedFiles(repoFolder, files)
+            val newMapIndex = Index.addAll(mapIndex, stagedFiles)
 
-        Util.handleIOException( () => {
-            val either = for {
-                indexFile <- getIndexFile(repoFolder)
-                blobsFolder <- IOBlob.getBlobsFolder(repoFolder)
+            write(indexFile, newMapIndex)
+            IOBlob.writeAll(blobsFolder, files)
 
-                mapIndex <- read(indexFile)
-
-                stagedFiles <- Right(StagedFiles(repoFolder, files))
-                newMapIndex <- Right(Index.addAll(mapIndex, stagedFiles))
-
-                writeResult <- Util.optionToEither(write(indexFile, newMapIndex))
-                either <- Util.optionToEither(IOBlob.writeAll(blobsFolder, files))
-            } yield either
-
-            Util.eitherToOption(either)
+            None
         })
     }
 

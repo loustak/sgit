@@ -80,20 +80,17 @@ class IndexSpec extends FlatSpec {
 
         IOIndex.add(repo, repo.parent, Config(paths = filesPath))
 
-        val tuple = for {
-            indexFile <- IOIndex.getIndexFile(repo)
-            mapIndex <- IOIndex.read(indexFile)
-        } yield (indexFile, mapIndex)
+        Util.handleException(() => {
+            val indexFile = IOIndex.getIndexFile(repo)
+            val mapIndex = IOIndex.read(indexFile)
 
-        tuple match {
-            case Left(error) => fail(error)
-            case Right(tuple) => {
-                val indexFile = tuple._1
-                val mapIndex = tuple._2
+            assert(indexFile.isRegularFile)
+            assert(mapIndex.size == files.size)
 
-                assert(indexFile.isRegularFile)
-                assert(mapIndex.size == files.size)
-            }
+            None
+        }) match {
+            case Some(value) => fail(value)
+            case None =>
         }
 
         IORepositoryTest.delete(repo)
