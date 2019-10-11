@@ -58,7 +58,7 @@ class IndexSpec extends FlatSpec {
 
         error match {
             case Some(error) => succeed
-            case _ => fail("No error message returned...")
+            case ret => fail("No error message returned, the return was: " + ret.toString)
         }
 
         IORepositoryTest.delete(repo)
@@ -77,28 +77,25 @@ class IndexSpec extends FlatSpec {
             file.pathAsString
         })
 
-        val error = IOIndex.add(
-            repo,
-            repo.parent,
-            Config(paths = filesPath)
-        )
-
-        error match {
+        IOIndex.add(
+            repo, repo.parent, Config(paths = filesPath)
+        ) match {
             case Some(error) => fail(error)
             case _ =>
         }
 
-        val either = IOIndex.read(repo)
+        val tuple = for {
+            indexFile <- IOIndex.getIndexFile(repo)
+            mapIndex <- IOIndex.read(indexFile)
+        } yield (indexFile, mapIndex)
 
-        either match {
+        tuple match {
             case Left(error) => fail(error)
-            case Right(mapIndex) => {
-                val file = repo/Repository.getIndexPath()
+            case Right(tuple) => {
+                val indexFile = tuple._1
+                val mapIndex = tuple._2
 
-                if (!file.isRegularFile) {
-                    fail("Index file is invalid.")
-                }
-
+                assert(indexFile.isRegularFile)
                 assert(mapIndex.size == files.size)
             }
         }
@@ -110,31 +107,26 @@ class IndexSpec extends FlatSpec {
         val repo = IORepositoryTest.init()
         val file = IOTest.createRandomFile(repo.parent)
 
-       IOIndex.add(
-            repo,
-            repo.parent,
-            Config(paths = List(file.pathAsString))
-       ) match {
-           case Some(error) => fail(error)
-           case _ =>
-       }
-
+        IOIndex.add(
+            repo, repo.parent, Config(paths = List(file.pathAsString))
+        ) match {
+            case Some(error) => fail(error)
+            case _ =>
+        }
         IOIndex.remove(
-            repo,
-            repo.parent,
-            Config(paths = List(file.pathAsString))
+            repo, repo.parent, Config(paths = List(file.pathAsString))
         ) match {
             case Some(error) => fail(error)
             case _ =>
         }
 
-        val index = repo/Repository.getIndexPath()
-        if (!index.exists) {
-            fail("The index doesn't exists")
+        IOIndex.getIndexFile(repo) match {
+            case Left(error) => fail(error)
+            case Right(indexFile) => {
+                val lines = indexFile.lines().toList
+                assert(lines.size == 0)
+            }
         }
-
-        val lines = index.lines().toList
-        assert(lines.size == 0)
 
         IORepositoryTest.delete(repo)
     }

@@ -108,13 +108,7 @@ object IOIndex {
     /* The index file of the repository. It either return an
     *  error or a tuple containing the repository file and the map index.
     */
-    def read(repoFolder: File): Either[String, Index.MapIndex] = {
-        val indexFile = repoFolder/Repository.getIndexPath()
-
-        if (!indexFile.exists) {
-            return Left("Repository is corrupt: index file doesn't exists.")
-        }
-
+    def read(indexFile: File): Either[String, Index.MapIndex] = {
         val lines = indexFile.lines().toList
         val either = readRec(lines, Map())
 
@@ -142,9 +136,8 @@ object IOIndex {
     }
 
     @impure
-    def write(repoFolder: File, mapIndex: Type.MapIndex): Option[String] = {
+    def write(indexFile: File, mapIndex: Type.MapIndex): Option[String] = {
         try {
-            val indexFile = repoFolder / Repository.getIndexPath()
             indexFile.clear()
 
             mapIndex.keys.foreach((path) => {
@@ -158,46 +151,42 @@ object IOIndex {
         }
     }
 
-    implicit  class ChainableEither[A, B](e: Either[A, B]) {
-        def next[C, D](func: (B) => Option[A]): Option[A] = {
-            e match {
-                case Left(error) => Some(error)
-                case Right(value) => func(value)
+    @impure
+    def add(repoFolder: File, commandFolder: File, args: Config): Option[String] = {
+        val either = for {
+            indexFile <- getIndexFile(repoFolder)
+            mapIndex <- read(indexFile)
+            stagedFiles <- StagedFile.createAllFromPath(repoFolder, args.paths)
+            newMapIndex <- Right(Index.addAll(mapIndex, stagedFiles))
+            either <- write(indexFile, newMapIndex) match {
+                case Some(error) => Left(error)
+                case None => Right(None)
             }
+        } yield either
+
+        either match {
+            case Left(error) => Some(error)
+            case _ => None
         }
     }
 
     @impure
-    def add(repoFolder: File, commandFolder: File, args: Config): Option[String] = {
-
-
-
-        Chain(read(repoFolder), (mapIndex: Type.MapIndex) => {
-            Chain(StagedFile.createAllFromPath(repoFolder, args.paths), (stagedFilesToAdd: List[Index.StagedFile]) => {
-                val newIndex = Index.addAll(mapIndex, stagedFilesToAdd)
-                write(repoFolder, newIndex)
-
-                /*
-                val files = stagedFilesToAdd.map( (stagedFile) => {
-                    File(stagedFile._2)
-                })
-                Chain(IOBlob.getBlobsFolder(repoFolder), (blobsFolder: File) => {
-                    IOBlob.writeAll(blobsFolder, files)
-                })
-                */
-            })
-        })
-    }
-
-    @impure
     def remove(repoFolder: File, commandFolder: File, args: Config): Option[String] = {
-        Chain(read(repoFolder), (mapIndex: Type.MapIndex) => {
-            Chain(StagedFile.createAllFromPath(repoFolder, args.paths), (filesToRemove: List[Index.StagedFile]) => {
-                Chain(Index.removeAll(mapIndex, filesToRemove), (newIndex: Type.MapIndex) => {
-                    write(repoFolder, newIndex)
-                })
-            })
-        })
+        val either = for {
+            indexFile <- getIndexFile(repoFolder)
+            mapIndex <- read(indexFile)
+            filesToUnstage <- StagedFile.createAllFromPath(repoFolder, args.paths)
+            newMapIndex <- Index.removeAll(mapIndex, filesToUnstage)
+            either <- write(repoFolder, newMapIndex) match {
+                case Some(error) => Left(error)
+                case None => Right(None)
+            }
+        } yield either
+
+        either match {
+            case Left(error) => Some(error)
+            case _ => None
+        }
     }
 
     @impure
