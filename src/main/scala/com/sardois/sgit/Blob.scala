@@ -1,7 +1,5 @@
 package com.sardois.sgit
 
-import java.io.IOException
-
 import better.files._
 
 import scala.annotation.tailrec
@@ -42,11 +40,9 @@ object IOBlob {
     @tailrec
     @impure
     def writeAll(blobsFolder: File, files: List[File]): Unit = {
-        if (files == Nil) None
-        else {
-            val file = files.head
-            write(blobsFolder, file)
-            writeAll(blobsFolder, files.tail)
-        }
+        if (files == Nil) return
+        val file = files.head
+        write(blobsFolder, file)
+        writeAll(blobsFolder, files.tail)
     }
 }

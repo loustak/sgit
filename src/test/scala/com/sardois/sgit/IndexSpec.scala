@@ -10,7 +10,7 @@ class IndexSpec extends FlatSpec {
             .addLine("e1", "s1")
             .addLine("e2", "s2")
             .addLine("e3", "s3")
-        assert(newIndex.size() == 3)
+        assert(newIndex.size == 3)
     }
 
     it should "be able to add staged files" in {
@@ -19,7 +19,7 @@ class IndexSpec extends FlatSpec {
             .add(StagedFile("e1", "s1"))
             .add(StagedFile("e2", "s2"))
             .add(StagedFile("e3", "s3"))
-        assert(newIndex.size() == 3)
+        assert(newIndex.size == 3)
     }
 
     it should "be able to add multiples staged files" in {
@@ -32,7 +32,7 @@ class IndexSpec extends FlatSpec {
         val stagedFiles = StagedFiles(files)
         val newIndex = baseIndex.addAll(stagedFiles)
 
-        assert(newIndex.size() == files.size)
-        assert(newIndex.size() == stagedFiles.size)
+        assert(newIndex.size == files.size)
+        assert(newIndex.size == stagedFiles.size)
     }
 }

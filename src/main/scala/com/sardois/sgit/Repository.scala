@@ -54,7 +54,7 @@ object Repository {
     }
 
     def relativePathFromRepo(repoFolder: File, file: File): String = {
-        file.pathAsString.replace(repoFolder.parent.pathAsString + "/", "")
+        repoFolder.parent.relativize(file).toString
     }
 
     /** List recursively all the files and folders inside

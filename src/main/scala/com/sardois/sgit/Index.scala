@@ -33,7 +33,7 @@ object StagedFiles {
 
 class Index(map: Map[String, String]) {
 
-    def size(): Int = map.size
+    def size: Int = map.size
 
     def addLine(path: String, sha: String): Index = {
         Index(map + (path -> sha))

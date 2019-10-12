@@ -8,9 +8,12 @@ import better.files._
 object Util {
 
     def shaFile(file: File): String = {
-        file.sha256.toLowerCase
+        shaString(file.contentAsString)
     }
 
+    /* Change this hash function to change the hash
+     * algorithm used by sgit globally.
+     */
     def shaString(str: String): String = {
         MessageDigest.getInstance("SHA-256")
             .digest(str.getBytes("UTF-8"))
@@ -31,20 +34,7 @@ object Util {
         } catch {
             case ex: IOException => Some(ex.getMessage)
             case ex: IllegalArgumentException => Some(ex.getMessage)
-        }
-    }
-
-    def optionToEither[A](o: Option[A]): Either[A, Unit] = {
-        o match {
-            case Some(value) => Left(value)
-            case None => Right(None)
-        }
-    }
-
-    def eitherToOption[B](e: Either[String, B]): Option[String] = {
-        e match {
-            case Left(value) => Some(value)
-            case Right(value) => None
+            case ex: RuntimeException => Some(ex.getMessage)
         }
     }
 }
