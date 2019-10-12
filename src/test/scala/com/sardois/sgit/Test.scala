@@ -1,10 +1,11 @@
 package com.sardois.sgit
 
 import better.files._
+import org.scalatest.FlatSpec
 
 import scala.annotation.tailrec
 
-object Test {
+object Test extends FlatSpec {
 
     def getTestFolder(): File = File("test")
 
@@ -30,9 +31,21 @@ object Test {
     def randomString(length: Int): String = {
         scala.util.Random.alphanumeric.filter(_.isLetter).take(length).mkString
     }
+
+    def handleException(func: () => Option[String]) = {
+        func() match {
+            case Some(value) => fail(value)
+            case None =>
+        }
+    }
 }
 
 object IOTest {
+
+    @impure
+    def createRandomFolder(): File = {
+        Test.getRandomFolder().createDirectories()
+    }
 
     /** Create a random file with a random content.
      * The content is a random string with no guarantee.

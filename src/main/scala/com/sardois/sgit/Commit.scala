@@ -52,6 +52,7 @@ object IOCommit {
         commitFile.write(commit.toString)
     }
 
+    @impure
     def commit(repoFolder: File, commandFolder: File, args: Config): Option[String] = {
         Util.handleException( () => {
             val message = args.commitMessage

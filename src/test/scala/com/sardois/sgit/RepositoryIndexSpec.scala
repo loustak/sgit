@@ -8,10 +8,9 @@ class RepositoryIndexSpec extends FlatSpec {
         val repo = IORepositoryTest.init()
         val file = IOTest.createRandomFile(repo.parent)
 
-        IOIndex.add(repo, repo.parent, Config(paths = List(file.pathAsString))) match {
-            case Some(error) => fail(error)
-            case _ =>
-        }
+        Test.handleException( () => {
+            IOIndex.add(repo, repo.parent, Config(paths = List(file.pathAsString)))
+        })
 
         val index = repo/Repository.getIndexPath()
         if (!index.exists) {
@@ -38,11 +37,49 @@ class RepositoryIndexSpec extends FlatSpec {
         IORepositoryTest.delete(repo)
     }
 
+    it should "be able to add nested files" in {
+        val repo = IORepositoryTest.init()
+        val nested = (repo.parent/"nested").createDirectories()
+        val veryNested = (nested/"nestedAgain").createDirectories()
+        val file = IOTest.createRandomFile(veryNested)
+
+        Test.handleException( () => {
+            IOIndex.add(repo, repo.parent, Config(paths = List(file.pathAsString)))
+        })
+
+        IORepositoryTest.delete(repo)
+    }
+
     it should "write added files as blobs" in {
         val repo = IORepositoryTest.init()
         val file = IOTest.createRandomFile(repo.parent)
 
         IOIndex.add(repo, repo.parent, Config(paths = List(file.pathAsString)))
+
+        IORepositoryTest.delete(repo)
+    }
+
+    it should "not write two identical files as two blobs" in {
+        // But, it should still write two index entry pointing to only one blob
+        val repo = IORepositoryTest.init()
+        val originalFile = IOTest.createRandomFile(repo.parent)
+        // Create a copy of the previous file (to get the same sha)
+        val copiedFile = (repo.parent/"copy").write(originalFile.contentAsString)
+
+        if (Util.shaFile(copiedFile) != Util.shaFile(originalFile)) {
+            fail("The copied file have a different sha than the original")
+        }
+
+        val fileList = List(originalFile.pathAsString, copiedFile.pathAsString)
+
+        Test.handleException( () => {
+            IOIndex.add(repo, repo.parent, Config(paths = fileList))
+        })
+
+        // Only one blob should had been created since
+        // the two added files have the same sha
+        val blobFolder = IOBlob.getBlobsFolder(repo)
+        assert(blobFolder.list.size == 1)
 
         IORepositoryTest.delete(repo)
     }

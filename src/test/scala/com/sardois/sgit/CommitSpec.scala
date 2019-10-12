@@ -9,13 +9,10 @@ class CommitSpec extends FlatSpec {
         val file = IOTest.createRandomFile(repo.parent)
         val message = "Test commit"
 
-        Util.handleException(() => {
+        Test.handleException( () => {
             IOIndex.add(repo, repo.parent, Config(paths = List(file.pathAsString)))
             IOCommit.commit(repo, repo.parent, Config(commitMessage = message))
-        }) match {
-            case Some(value) => fail(value)
-            case None =>
-        }
+        })
 
         val indexFile = IOIndex.getIndexFile(repo)
         val index = IOIndex.read(indexFile)
