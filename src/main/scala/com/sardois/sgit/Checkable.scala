@@ -7,10 +7,20 @@ trait Checkable {
     val name: String
     val commit: TCommit
 
+    def getType(): String
+
     def getPath(): String
+
+    override def toString(): String = {
+        getType() + " " + name
+    }
 }
 
 class Branch(val name: String, val commit: TCommit) extends Checkable {
+
+    def getType(): String = {
+        Branch.getType()
+    }
 
     def getPath(): String = {
         Repository.getBranchesPath()
@@ -23,12 +33,20 @@ object Branch {
         new Branch(name, commit)
     }
 
+    def getType(): String = {
+        "branch"
+    }
+
     def master(): Branch = {
         Branch("master", RootCommit)
     }
 }
 
 class Tag(val name: String, val commit: TCommit) extends Checkable {
+
+    def getType(): String = {
+        Tag.getType()
+    }
 
     def getPath(): String = {
         Repository.getTagsPath()
@@ -39,6 +57,10 @@ object Tag {
 
     def apply(name: String, commit: TCommit): Tag = {
         new Tag(name, commit)
+    }
+
+    def getType(): String = {
+        "tag"
     }
 }
 

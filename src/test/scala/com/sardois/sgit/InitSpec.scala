@@ -63,15 +63,25 @@ class InitSpec extends FlatSpec {
         IORepositoryTest.delete(repo)
     }
 
-    /* TODO: Uncomment this
     it should "have it's head set to master in the HEAD file" in {
         val repo = IORepositoryTest.init()
         val head = repo/Repository.getHeadPath()
         val text = head.lines().toList
-        assert(text(0) == "master")
+        val master = Branch.master()
+
+        if (text.size != 1) fail("Invalid numbers of lines in the HEAD file")
+
+        val split = text(0).split(" ")
+        if (split.size != 2) fail("Invalid format in the HEAD file")
+
+        val checkableType = split(0)
+        val branchName = split(1)
+
+        assert(checkableType == Branch.getType())
+        assert(branchName == master.name)
+
         IORepositoryTest.delete(repo)
     }
-    */
 
     it should "have a refs/tags empty folder" in {
         val repo = IORepositoryTest.init()

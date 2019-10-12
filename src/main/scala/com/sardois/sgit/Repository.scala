@@ -108,15 +108,14 @@ object IORepository {
         val index = repoFolder/Repository.getIndexPath()
         index.createFile()
 
-        // Write the head
-        val head = repoFolder/Repository.getHeadPath()
-        // head.write(master.name.toString())
-
         // Write the checkables/branches and the master branch
         val heads = repoFolder/Repository.getBranchesPath()
         heads.createDirectories()
         val master = Branch.master()
         IOCheckable.write(repoFolder, master)
+
+        // Write the head
+        IOHead.write(repoFolder, master)
 
         // Create the tags folder
         val tags = repoFolder/Repository.getTagsPath()

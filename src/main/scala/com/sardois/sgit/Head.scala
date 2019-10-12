@@ -14,6 +14,7 @@ object IOHead {
 
     def write(repoFolder: File, checkable: Checkable): Unit = {
         val headFile = getHeadFile(repoFolder)
-        
+        headFile.clear()
+        headFile.write(checkable.toString())
     }
 }
