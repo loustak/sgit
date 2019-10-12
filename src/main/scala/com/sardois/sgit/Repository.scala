@@ -68,15 +68,15 @@ object Repository {
         }).toList
     }
 
-    def getRefsPath(): String = "refs"
+    def getCheckables(): String = "checkables"
 
     def getHeadPath(): String = "HEAD"
 
     def getIndexPath(): String = "index"
 
-    def getHeadsPath(): String = getRefsPath() + "/heads"
+    def getBranchesPath(): String = getCheckables() + "/branches"
 
-    def getTagsPath(): String = getRefsPath() + "/tags"
+    def getTagsPath(): String = getCheckables() + "/tags"
 
     def getBlobsPath(): String = "blobs"
 
@@ -91,9 +91,6 @@ object IORepository {
             case Some(_) => return Left("This is already an sgit repository.")
             case None =>
         }
-
-        // val master = new Branch("master", NoParentCommit)
-        // val branches = List(master)
 
         // Create the repository folder
         val repoFolder = folder/Repository.getDirectoryName()
@@ -115,10 +112,11 @@ object IORepository {
         val head = repoFolder/Repository.getHeadPath()
         // head.write(master.name.toString())
 
-        // Write the ref/heads and branches
-        val heads = repoFolder/Repository.getHeadsPath()
+        // Write the checkables/branches and the master branch
+        val heads = repoFolder/Repository.getBranchesPath()
         heads.createDirectories()
-        // IOBranch.writeAll(heads, branches)
+        val master = Branch.master()
+        IOCheckable.write(repoFolder, master)
 
         // Create the tags folder
         val tags = repoFolder/Repository.getTagsPath()

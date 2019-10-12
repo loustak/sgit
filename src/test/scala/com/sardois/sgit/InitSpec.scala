@@ -35,17 +35,31 @@ class InitSpec extends FlatSpec {
         IORepositoryTest.delete(repo)
     }
 
-    it should "have a refs folder" in {
+    it should "have a checkables folder" in {
         val repo = IORepositoryTest.init()
-        val refs = repo/Repository.getRefsPath()
-        assert(refs.isDirectory())
+        val checkables = repo/Repository.getCheckables()
+        assert(checkables.isDirectory())
         IORepositoryTest.delete(repo)
     }
 
-    it should "have a refs/heads folder" in {
+    it should "have a checkables/branches folder" in {
         val repo = IORepositoryTest.init()
-        val head = repo/Repository.getHeadsPath()
+        val head = repo/Repository.getBranchesPath()
         assert(head.isDirectory())
+        IORepositoryTest.delete(repo)
+    }
+
+    it should "have it's master branch written" in {
+        val repo = IORepositoryTest.init()
+        val heads = repo/Repository.getBranchesPath()
+        val masterBranch = Branch.master()
+        val masterFile = heads/masterBranch.name
+
+        // Check that the branch file exists, and
+        // the pointed commit is the root commit.
+        assert(masterFile.isRegularFile)
+        assert(masterFile.contentAsString == masterBranch.commit.sha())
+
         IORepositoryTest.delete(repo)
     }
 
@@ -55,14 +69,6 @@ class InitSpec extends FlatSpec {
         val head = repo/Repository.getHeadPath()
         val text = head.lines().toList
         assert(text(0) == "master")
-        IORepositoryTest.delete(repo)
-    }
-
-    it should "have it's master branch written" in {
-        val repo = IORepositoryTest.init()
-        val heads = repo/Repository.getHeadsPath()
-        val master = heads/"master"
-        assert(master.isRegularFile)
         IORepositoryTest.delete(repo)
     }
     */

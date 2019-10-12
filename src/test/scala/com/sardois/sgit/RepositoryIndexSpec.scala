@@ -76,6 +76,10 @@ class RepositoryIndexSpec extends FlatSpec {
             IOIndex.add(repo, repo.parent, Config(paths = fileList))
         })
 
+        // The number of index entry should be two
+        val indexFile = IOIndex.getIndexFile(repo)
+        assert(indexFile.lineCount == 2)
+
         // Only one blob should had been created since
         // the two added files have the same sha
         val blobFolder = IOBlob.getBlobsFolder(repo)
