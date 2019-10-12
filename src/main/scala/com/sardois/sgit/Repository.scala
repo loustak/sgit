@@ -112,7 +112,7 @@ object IORepository {
         val heads = repoFolder/Repository.getBranchesPath()
         heads.createDirectories()
         val master = Branch.master()
-        IOCheckable.write(repoFolder, master)
+        IOCheckable.create(repoFolder, master)
 
         // Write the head
         IOHead.write(repoFolder, master)

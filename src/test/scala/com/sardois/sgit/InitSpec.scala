@@ -58,7 +58,7 @@ class InitSpec extends FlatSpec {
         // Check that the branch file exists, and
         // the pointed commit is the root commit.
         assert(masterFile.isRegularFile)
-        assert(masterFile.contentAsString == masterBranch.commit.sha())
+        assert(masterFile.contentAsString == masterBranch.commitSha)
 
         IORepositoryTest.delete(repo)
     }
@@ -83,7 +83,7 @@ class InitSpec extends FlatSpec {
         IORepositoryTest.delete(repo)
     }
 
-    it should "have a refs/tags empty folder" in {
+    it should "have a checkables/tags empty folder" in {
         val repo = IORepositoryTest.init()
         val tags = repo/Repository.getTagsPath()
         assert(tags.isDirectory)

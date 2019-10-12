@@ -4,7 +4,7 @@ import org.scalatest._
 
 class CommitSpec extends FlatSpec {
 
-    "A commit" should "be writable" in {
+    "A commit" should "be doable" in {
         val repo = IORepositoryTest.init()
         val file = IOTest.createRandomFile(repo.parent)
         val message = "Test commit"
@@ -16,10 +16,16 @@ class CommitSpec extends FlatSpec {
 
         val indexFile = IOIndex.getIndexFile(repo)
         val index = IOIndex.read(indexFile)
-        val commit = Commit(message, index, RootCommit)
+        val commit = Commit(message, index, Commit.rootCommitSha())
         val newCommitFile = repo/Repository.getCommitsPath()/commit.sha()
+
+        // The format of the commit is correct
         assert(newCommitFile.contentAsString == commit.toString)
 
-        IORepositoryTest.delete(repo)
+        // The commit sha referenced by the HEAD was updated
+        val newCommitSha = IOHead.getPointedCommitSha(repo)
+        assert(newCommitSha == commit.sha())
+
+        //IORepositoryTest.delete(repo)
     }
 }
