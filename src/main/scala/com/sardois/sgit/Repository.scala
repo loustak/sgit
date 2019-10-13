@@ -57,6 +57,10 @@ object Repository {
         repoFolder.parent.relativize(file).toString
     }
 
+    def relativePathFromRepo(repoFolder: File, path: String): String = {
+        path.replace(repoFolder.pathAsString, "")
+    }
+
     /** List recursively all the files and folders inside
      * the parent folder of the repository.
      * Doesn't return files and folders inside the the .sgit directory
@@ -99,7 +103,6 @@ object IORepository {
         repoFolder.createDirectories()
 
         // Create the indexes folder
-        // TODO: Test this
         val indexesFolder = repoFolder/Repository.getIndexesPath()
         indexesFolder.createDirectories()
 

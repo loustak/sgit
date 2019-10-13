@@ -7,9 +7,9 @@ class IndexSpec extends FlatSpec {
     "An index" should "be able to add by line" in {
         val baseIndex = Index()
         val newIndex = baseIndex
-            .addLine("e1", "s1")
-            .addLine("e2", "s2")
-            .addLine("e3", "s3")
+            .add("e1", "s1")
+            .add("e2", "s2")
+            .add("e3", "s3")
         assert(newIndex.size == 3)
     }
 
@@ -29,7 +29,7 @@ class IndexSpec extends FlatSpec {
             ("f2", "s2"),
             ("f3", "s3"),
         )
-        val stagedFiles = IndexEntries(files)
+        val stagedFiles = IndexEntry(files)
         val newIndex = baseIndex.addAll(stagedFiles)
 
         assert(newIndex.size == files.size)

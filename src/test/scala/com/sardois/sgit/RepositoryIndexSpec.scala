@@ -134,15 +134,15 @@ class RepositoryIndexSpec extends FlatSpec {
 
     it should "be able to list untracked files" in {
         val repo = IORepositoryTest.init()
-        IOTest.createRandomFile(repo.parent)
+        val file = IOTest.createRandomFile(repo.parent)
+        val files = List(file.pathAsString)
 
         Test.handleException( () => {
             val indexFile = IOIndex.getIndexFile(repo)
             val index = IOIndex.read(indexFile)
-            val repoFiles = Repository.list(repo)
-            val files = IOIndex.getUntrackedFiles(repo, index, repoFiles)
+            val untrackedFiles = IOIndex.getUntrackedFiles(repo, index, files)
 
-            assert(files.size == 1)
+            assert(untrackedFiles.size == files.size)
 
             None
         })
@@ -150,20 +150,21 @@ class RepositoryIndexSpec extends FlatSpec {
         IORepositoryTest.delete(repo)
     }
 
-    it should "be able to list nested untracked files" in {
+    it should "be able to list untracked nested files" in {
         val repo = IORepositoryTest.init()
         val nested = (repo.parent/"nested").createDirectories()
-        IOTest.createRandomFile(nested)
+        val file1 = IOTest.createRandomFile(nested)
         val nestedAgain = (nested/"nestedAgain").createDirectories()
-        IOTest.createRandomFile(nestedAgain)
+        val file2 = IOTest.createRandomFile(nestedAgain)
+
+        val files = List(file1.pathAsString, file2.pathAsString)
 
         Test.handleException( () => {
             val indexFile = IOIndex.getIndexFile(repo)
             val index = IOIndex.read(indexFile)
-            val repoFiles = Repository.list(repo)
-            val files = IOIndex.getUntrackedFiles(repo, index, repoFiles)
+            val untrackedFiles = IOIndex.getUntrackedFiles(repo, index, files)
 
-            assert(files.size == 2)
+            assert(untrackedFiles.size == files.size)
 
             None
         })
@@ -171,13 +172,14 @@ class RepositoryIndexSpec extends FlatSpec {
         IORepositoryTest.delete(repo)
     }
 
-    it should "be able to list modified files" in {
+    it should "be able to list not staged modified files" in {
         val repo = IORepositoryTest.init()
         val file = IOTest.createRandomFile(repo.parent)
+        val files = List(file.pathAsString)
 
         Test.handleException( () => {
             // First be sure to track the file inside the repo
-            IOIndex.add(repo, repo.parent, Config(paths = List(file.pathAsString)))
+            IOIndex.add(repo, repo.parent, Config(paths = files))
 
             // Then, generate a new content different
             // from the previous one to get a new sha.
@@ -186,8 +188,29 @@ class RepositoryIndexSpec extends FlatSpec {
 
             val indexFile = IOIndex.getIndexFile(repo)
             val index = IOIndex.read(indexFile)
-            val modifiedFiles = IOIndex.getModifiedFiles(repo, index, List(file))
+            val modifiedFiles = IOIndex.getStatusNotStagedModifiedFiles(repo, index, files)
             assert(modifiedFiles.size == 1)
+
+            None
+        })
+
+        IORepositoryTest.delete(repo)
+    }
+
+    it should "be able to list not staged deleted files" in {
+        val repo = IORepositoryTest.init()
+        val file = IOTest.createRandomFile(repo.parent)
+
+        val files = List(file.pathAsString)
+
+        Test.handleException( () => {
+            IOIndex.add(repo, repo.parent, Config(paths = files))
+            file.delete()
+
+            val indexFile = IOIndex.getIndexFile(repo)
+            val index = IOIndex.read(indexFile)
+            val deletedFiles = IOIndex.getStatusNotStagedDeletedFiles(repo, index, files)
+            assert(deletedFiles.size == 1)
 
             None
         })

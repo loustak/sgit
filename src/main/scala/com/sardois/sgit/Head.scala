@@ -67,6 +67,14 @@ object IOHead {
     }
 
     @impure
+    def getPointedIndex(repoFolder: File): Index = {
+        val commit = getPointedCommit(repoFolder)
+        val indexSha = commit.indexSha
+        val indexFolder = IOIndex.getIndexesFolder(repoFolder)
+        IOIndex.read(indexFolder, indexSha)
+    }
+
+    @impure
     def write(repoFolder: File, checkable: Checkable): Unit = {
         val headFile = getHeadFile(repoFolder)
         headFile.clear()

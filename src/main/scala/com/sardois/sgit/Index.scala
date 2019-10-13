@@ -1,65 +1,24 @@
 package com.sardois.sgit
 
-
 import better.files.File
 
 import scala.annotation.tailrec
 
-class IndexEntry(val relativePath: String, val sha: String) {
-
-}
-
-object IndexEntry {
-
-    def apply(relativePath: String, sha: String): IndexEntry = new IndexEntry(relativePath, sha)
-
-    def fromFile(repoFolder: File, file: File): IndexEntry = {
-        val relativePath = Repository.relativePathFromRepo(repoFolder, file)
-        val sha = Util.shaFile(file)
-        IndexEntry(relativePath, sha)
-    }
-}
-
-object IndexEntries {
-
-    def apply(files: List[(String, String)]): List[IndexEntry] = {
-        files.map( file => IndexEntry(file._1, file._2))
-    }
-
-    def fromFiles(repoFolder: File, files: List[File]): List[IndexEntry] = {
-        files.map( file => IndexEntry.fromFile(repoFolder, file))
-    }
-}
-
-class Index(map: Map[String, String]) {
+class Index(private val map: Map[String, String]) {
 
     def size: Int = map.size
 
-    def isTracked(indexEntry: IndexEntry): Boolean = {
-        map.contains(indexEntry.relativePath)
-    }
-
-    def isModified(indexEntry: IndexEntry): Boolean = {
-        if (!isTracked(indexEntry)) {
-            throw new IllegalArgumentException("The file " +
-                indexEntry.relativePath + " is not tracked by sgit")
-        }
-
-        val indexedSha = map(indexEntry.relativePath)
-        indexEntry.sha != indexedSha
-    }
-
-    def addLine(path: String, sha: String): Index = {
+    def add(path: String, sha: String): Index = {
         Index(map + (path -> sha))
     }
 
     def add(file: IndexEntry): Index = {
         val path = file.relativePath
         val sha = file.sha
-        addLine(path, sha)
+        add(path, sha)
     }
 
-    def addAll(stagedFiles: List[IndexEntry]): Index = {
+    def addAll(indexEntries: List[IndexEntry]): Index = {
 
         @tailrec
         def rec(stagedFiles: List[IndexEntry], index: Index): Index = {
@@ -69,7 +28,28 @@ class Index(map: Map[String, String]) {
             }
         }
 
-        rec(stagedFiles, this)
+        rec(indexEntries, this)
+    }
+
+    def untracked(otherIndex: Index): List[String] = {
+        otherIndex.map.keys.filter( key => {
+            !map.contains(key)
+        }).toList
+    }
+
+    def modified(otherIndex: Index): List[String] = {
+        otherIndex.map.keys.filter( key => {
+            if (map.contains(key)) {
+                // Return true if sha changed for the same file
+                otherIndex.map(key) != map(key)
+            } else false
+        }).toList
+    }
+
+    def deleted(otherIndex: Index): List[String] = {
+        map.keys.filter( key => {
+            !otherIndex.map.contains(key)
+        }).toList
     }
 
     def sha(): String = {
@@ -85,7 +65,13 @@ class Index(map: Map[String, String]) {
 
 object Index {
 
-    def apply(map: Map[String, String] = Map()): Index = new Index(map)
+    def apply(map: Map[String, String] = Map()): Index = {
+        new Index(map)
+    }
+
+    def apply(indexEntries: List[IndexEntry]): Index = {
+        Index().addAll(indexEntries)
+    }
 }
 
 object IOIndex {
@@ -116,7 +102,7 @@ object IOIndex {
             val path = split(0)
             val sha = split(1)
 
-            val newIndex = index.addLine(path, sha)
+            val newIndex = index.add(path, sha)
             rec(lines.tail, newIndex)
         }
 
@@ -136,25 +122,24 @@ object IOIndex {
     }
 
     @impure
-    def getUntrackedFiles(repoFolder: File, index: Index, files: List[File]): List[File] = {
-        files.filter( file => {
-            if (file.isDirectory) false
-            else {
-                val indexEntry = IndexEntry.fromFile(repoFolder, file)
-                !index.isTracked(indexEntry)
-            }
-        })
+    def getUntrackedFiles(repoFolder: File, index: Index, paths: List[String]): List[String] = {
+        val indexEntries = IOIndexEntry.fromPaths(repoFolder, paths)
+        val tmpIndex = Index(indexEntries)
+        index.untracked(tmpIndex)
     }
 
     @impure
-    def getModifiedFiles(repoFolder: File, index: Index, files: List[File]): List[File] = {
-        files.filter( file => {
-            if (file.isDirectory) false
-            else {
-                val indexEntry = IndexEntry.fromFile(repoFolder, file)
-                index.isModified(indexEntry)
-            }
-        })
+    def getStatusNotStagedModifiedFiles(repoFolder: File, index: Index, paths: List[String]): List[String] = {
+        val indexEntries = IOIndexEntry.fromPaths(repoFolder, paths)
+        val tmpIndex = Index(indexEntries)
+        index.modified(tmpIndex)
+    }
+
+    @impure
+    def getStatusNotStagedDeletedFiles(index: Index, paths: List[String]): List[String] = {
+        val indexEntries = IndexEntry.fromPathsWithEmptySha(paths)
+        val tmpIndex = Index(indexEntries)
+        index.deleted(tmpIndex)
     }
 
     @impure
@@ -164,8 +149,8 @@ object IOIndex {
             val blobsFolder = IOBlob.getBlobsFolder(repoFolder)
             val indexFile = getIndexFile(repoFolder)
             val index = read(indexFile)
-            val stagedFiles = IndexEntries.fromFiles(repoFolder, files)
-            val newIndex = index.addAll(stagedFiles)
+            val indexEntries = IOIndexEntry.fromFiles(repoFolder, files)
+            val newIndex = index.addAll(indexEntries)
 
             write(indexFile, newIndex)
             IOBlob.writeAll(blobsFolder, files)
