@@ -10,6 +10,13 @@ class InitSpec extends FlatSpec {
         IORepositoryTest.delete(repo)
     }
 
+    it should "create an empty indexes folder" in {
+        val repo = IORepositoryTest.init()
+        val indexFolder = repo/Repository.getIndexesPath()
+        assert(indexFolder.isEmpty)
+        IORepositoryTest.delete(repo)
+    }
+
     it should "create an empty index file" in {
         val repo = IORepositoryTest.init()
         val index = repo/Repository.getIndexPath()

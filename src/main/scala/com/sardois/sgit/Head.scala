@@ -24,6 +24,7 @@ object IOHead {
         if (split.size != 2) {
             throw new RuntimeException("HEAD file format is invalid")
         }
+
         (split(0), split(1))
     }
 
@@ -60,7 +61,7 @@ object IOHead {
 
     @impure
     def getPointedCommit(repoFolder: File): Commit = {
-        val commitFolder = IOCommit.getCommitsFile(repoFolder)
+        val commitFolder = IOCommit.getCommitsFolder(repoFolder)
         val commitSha = getPointedCommitSha(repoFolder)
         IOCommit.read(commitFolder, commitSha)
     }

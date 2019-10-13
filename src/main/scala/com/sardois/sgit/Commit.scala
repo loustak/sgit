@@ -6,20 +6,18 @@ import better.files.File
 
 class Commit(
     val message: String,
-    val index: Index,
+    val indexSha: String,
     val parentCommitSha: String,
     val author: String,
-    val date: LocalDate
+    val date: String
         ) {
 
     def sha(): String = {
-        val str = message + index.toString +
-            author + date + parentCommitSha
-        Util.shaString(str)
+        Util.shaString(toString)
     }
 
     override def toString: String = {
-        val list = List(message, author, date, parentCommitSha, index.sha())
+        val list = List(message, author, date, parentCommitSha, indexSha)
         list.mkString(System.lineSeparator())
     }
 }
@@ -28,13 +26,13 @@ object Commit {
 
     def apply(
          message: String,
-         index: Index,
+         indexSha: String,
          parentCommitSha: String,
          author: String = "Anonymous",
-         date: LocalDate = LocalDate.now
+         date: String = LocalDate.now.toString
              ): Commit = {
 
-        new Commit(message, index, parentCommitSha, author, date)
+        new Commit(message, indexSha, parentCommitSha, author, date)
     }
 
     def rootCommitSha(): String = {
@@ -44,23 +42,38 @@ object Commit {
 
 object IOCommit {
 
-    def getCommitsFile(repoFolder: File): File = {
+    def getCommitsFolder(repoFolder: File): File = {
         repoFolder/Repository.getCommitsPath()
     }
 
     @impure
-    def read(commitFolder: File, commitFile: File): Commit = {
-        if (commitFile.exists) {
+    def read(commitFile: File): Commit = {
+        if (!commitFile.exists) {
             throw new RuntimeException("Commit doesn't exists at " + commitFile.pathAsString)
         }
 
-        ???
+        val lines = commitFile.lines.toArray
+        if (lines.size != 5) {
+            throw new RuntimeException("Commit format is invalid at " + commitFile.pathAsString)
+        }
+
+        val message = lines(0)
+        val author = lines(1)
+        val date = lines(2)
+        val parentCommitSha = lines(3)
+        val indexSha = lines(4)
+
+        Commit(message, indexSha, parentCommitSha, author, date)
     }
 
     @impure
     def read(commitFolder: File, commitSha: String): Commit = {
+        if (commitSha == Commit.rootCommitSha()) {
+            throw new IllegalArgumentException("Trying to read the root commit is forbidden")
+        }
+
         val commitFile = commitFolder/commitSha
-        read(commitFolder, commitFile)
+        read(commitFile)
     }
 
     @impure
@@ -79,19 +92,20 @@ object IOCommit {
     def commit(repoFolder: File, commandFolder: File, args: Config): Option[String] = {
         Util.handleException( () => {
             val message = args.commitMessage
-            val commitsFolder = getCommitsFile(repoFolder)
+            val commitsFolder = getCommitsFolder(repoFolder)
             val indexFile = IOIndex.getIndexFile(repoFolder)
             val index = IOIndex.read(indexFile)
+            val indexSha = index.sha()
 
             val checkableHeadFile = IOHead.getCheckableFile(repoFolder)
             val parentCommitSha = IOHead.getPointedCommitSha(repoFolder)
-            val newCommit = Commit(message, index, parentCommitSha)
+            val newCommit = Commit(message, indexSha, parentCommitSha)
 
             write(commitsFolder, newCommit)
 
             // Save the new index file
             val indexFolder = IOIndex.getIndexesFolder(repoFolder)
-            val newIndexFile = indexFolder/index.sha()
+            val newIndexFile = indexFolder/indexSha
             IOIndex.write(newIndexFile, index)
 
             // Update the commit referenced by the head

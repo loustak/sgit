@@ -41,7 +41,8 @@ class Index(map: Map[String, String]) {
 
     def isModified(indexEntry: IndexEntry): Boolean = {
         if (!isTracked(indexEntry)) {
-            throw new IllegalArgumentException("The file " + indexEntry.relativePath + " is not tracked by sgit")
+            throw new IllegalArgumentException("The file " +
+                indexEntry.relativePath + " is not tracked by sgit")
         }
 
         val indexedSha = map(indexEntry.relativePath)
@@ -98,6 +99,10 @@ object IOIndex {
     }
 
     def read(indexFile: File): Index = {
+        if (!indexFile.exists) {
+            throw new RuntimeException("Index doesn't exists at " + indexFile.pathAsString)
+        }
+
         val lines = indexFile.lines().toList
 
         @tailrec
@@ -116,6 +121,12 @@ object IOIndex {
         }
 
         rec(lines, Index())
+    }
+
+    @impure
+    def read(indexFolder: File, indexSha: String): Index = {
+        val indexFile = indexFolder/indexSha
+        read(indexFile)
     }
 
     @impure
