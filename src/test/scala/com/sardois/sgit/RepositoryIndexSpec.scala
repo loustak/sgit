@@ -131,4 +131,67 @@ class RepositoryIndexSpec extends FlatSpec {
 
         IORepositoryTest.delete(repo)
     }
+
+    it should "be able to list untracked files" in {
+        val repo = IORepositoryTest.init()
+        IOTest.createRandomFile(repo.parent)
+
+        Test.handleException( () => {
+            val indexFile = IOIndex.getIndexFile(repo)
+            val index = IOIndex.read(indexFile)
+            val repoFiles = Repository.list(repo)
+            val files = IOIndex.getUntrackedFiles(repo, index, repoFiles)
+
+            assert(files.size == 1)
+
+            None
+        })
+
+        IORepositoryTest.delete(repo)
+    }
+
+    it should "be able to list nested untracked files" in {
+        val repo = IORepositoryTest.init()
+        val nested = (repo.parent/"nested").createDirectories()
+        IOTest.createRandomFile(nested)
+        val nestedAgain = (nested/"nestedAgain").createDirectories()
+        IOTest.createRandomFile(nestedAgain)
+
+        Test.handleException( () => {
+            val indexFile = IOIndex.getIndexFile(repo)
+            val index = IOIndex.read(indexFile)
+            val repoFiles = Repository.list(repo)
+            val files = IOIndex.getUntrackedFiles(repo, index, repoFiles)
+
+            assert(files.size == 2)
+
+            None
+        })
+
+        IORepositoryTest.delete(repo)
+    }
+
+    it should "be able to list modified files" in {
+        val repo = IORepositoryTest.init()
+        val file = IOTest.createRandomFile(repo.parent)
+
+        Test.handleException( () => {
+            // First be sure to track the file inside the repo
+            IOIndex.add(repo, repo.parent, Config(paths = List(file.pathAsString)))
+
+            // Then, generate a new content different
+            // from the previous one to get a new sha.
+            val newContent = Test.randomString(file.contentAsString.length + 1)
+            file.write(newContent)
+
+            val indexFile = IOIndex.getIndexFile(repo)
+            val index = IOIndex.read(indexFile)
+            val modifiedFiles = IOIndex.getModifiedFiles(repo, index, List(file))
+            assert(modifiedFiles.size == 1)
+
+            None
+        })
+
+        IORepositoryTest.delete(repo)
+    }
 }

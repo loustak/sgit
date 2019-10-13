@@ -15,7 +15,7 @@ class InitSpec extends FlatSpec {
         val index = repo/Repository.getIndexPath()
         assert(index.isRegularFile)
         val lines = index.contentAsString()
-        assert(lines == "")
+        assert(lines.isEmpty)
         IORepositoryTest.delete(repo)
     }
 

@@ -26,6 +26,6 @@ class CommitSpec extends FlatSpec {
         val newCommitSha = IOHead.getPointedCommitSha(repo)
         assert(newCommitSha == commit.sha())
 
-        //IORepositoryTest.delete(repo)
+        IORepositoryTest.delete(repo)
     }
 }
