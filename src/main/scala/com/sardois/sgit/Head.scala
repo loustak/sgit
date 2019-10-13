@@ -59,6 +59,13 @@ object IOHead {
     }
 
     @impure
+    def getPointedCommit(repoFolder: File): Commit = {
+        val commitFolder = IOCommit.getCommitsFile(repoFolder)
+        val commitSha = getPointedCommitSha(repoFolder)
+        IOCommit.read(commitFolder, commitSha)
+    }
+
+    @impure
     def write(repoFolder: File, checkable: Checkable): Unit = {
         val headFile = getHeadFile(repoFolder)
         headFile.clear()

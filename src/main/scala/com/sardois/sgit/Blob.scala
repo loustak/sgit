@@ -28,6 +28,7 @@ object IOBlob {
     def write(blobsFolder: File, file: File): Unit = {
         val sha = Util.shaFile(file)
         val files = blobsFolder.list.toList
+
         if (!Blob.shaExists(files, sha)) {
             // The file doesn't exists, write it
             val content = file.contentAsString

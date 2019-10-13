@@ -74,6 +74,8 @@ object Repository {
 
     def getIndexPath(): String = "index"
 
+    def getIndexesPath(): String = "indexes"
+
     def getBranchesPath(): String = getCheckables() + "/branches"
 
     def getTagsPath(): String = getCheckables() + "/tags"
@@ -95,6 +97,11 @@ object IORepository {
         // Create the repository folder
         val repoFolder = folder/Repository.getDirectoryName()
         repoFolder.createDirectories()
+
+        // Create the indexes folder
+        // TODO: Test this
+        val indexesFolder = repoFolder/Repository.getIndexesPath()
+        indexesFolder.createDirectories()
 
         // Create the blobs folder
         val blobsFolder = repoFolder/Repository.getBlobsPath()

@@ -22,6 +22,11 @@ class CommitSpec extends FlatSpec {
         // The format of the commit is correct
         assert(newCommitFile.contentAsString == commit.toString)
 
+        // The index was saved
+        val savedIndexedFile = IOIndex.getIndexesFolder(repo)/index.sha()
+        assert(savedIndexedFile.exists)
+        assert(savedIndexedFile.contentAsString == index.toString)
+
         // The commit sha referenced by the HEAD was updated
         val newCommitSha = IOHead.getPointedCommitSha(repo)
         assert(newCommitSha == commit.sha())

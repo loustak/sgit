@@ -71,6 +71,10 @@ class Index(map: Map[String, String]) {
         rec(stagedFiles, this)
     }
 
+    def sha(): String = {
+        Util.shaString(toString)
+    }
+
     override def toString: String = {
         map.keys.map( path => {
             path + " " + map(path)
@@ -84,6 +88,10 @@ object Index {
 }
 
 object IOIndex {
+
+    def getIndexesFolder(repoFolder: File): File = {
+        repoFolder/Repository.getIndexesPath()
+    }
 
     def getIndexFile(repoFolder: File): File = {
         repoFolder/Repository.getIndexPath()
@@ -119,9 +127,8 @@ object IOIndex {
     @impure
     def getUntrackedFiles(repoFolder: File, index: Index, files: List[File]): List[File] = {
         files.filter( file => {
-            if (file.isDirectory) {
-                false
-            } else {
+            if (file.isDirectory) false
+            else {
                 val indexEntry = IndexEntry.fromFile(repoFolder, file)
                 !index.isTracked(indexEntry)
             }
@@ -131,11 +138,10 @@ object IOIndex {
     @impure
     def getModifiedFiles(repoFolder: File, index: Index, files: List[File]): List[File] = {
         files.filter( file => {
-            if (file.isDirectory) {
-                false
-            } else {
+            if (file.isDirectory) false
+            else {
                 val indexEntry = IndexEntry.fromFile(repoFolder, file)
-                !index.isModified(indexEntry)
+                index.isModified(indexEntry)
             }
         })
     }

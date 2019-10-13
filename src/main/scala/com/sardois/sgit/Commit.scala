@@ -19,10 +19,8 @@ class Commit(
     }
 
     override def toString: String = {
-        val newLine = System.lineSeparator()
-        message + newLine + author + newLine +
-            date + newLine + parentCommitSha + newLine +
-            newLine + index.toString
+        val list = List(message, author, date, parentCommitSha, index.sha())
+        list.mkString(System.lineSeparator())
     }
 }
 
@@ -51,6 +49,21 @@ object IOCommit {
     }
 
     @impure
+    def read(commitFolder: File, commitFile: File): Commit = {
+        if (commitFile.exists) {
+            throw new RuntimeException("Commit doesn't exists at " + commitFile.pathAsString)
+        }
+
+        ???
+    }
+
+    @impure
+    def read(commitFolder: File, commitSha: String): Commit = {
+        val commitFile = commitFolder/commitSha
+        read(commitFolder, commitFile)
+    }
+
+    @impure
     def write(commitFolder: File, commit: Commit): Unit = {
         val commitSha = commit.sha()
         val commitFile = commitFolder/commitSha
@@ -75,6 +88,13 @@ object IOCommit {
             val newCommit = Commit(message, index, parentCommitSha)
 
             write(commitsFolder, newCommit)
+
+            // Save the new index file
+            val indexFolder = IOIndex.getIndexesFolder(repoFolder)
+            val newIndexFile = indexFolder/index.sha()
+            IOIndex.write(newIndexFile, index)
+
+            // Update the commit referenced by the head
             IOCheckable.setToSha(checkableHeadFile, newCommit.sha())
 
             None
