@@ -28,9 +28,10 @@ object Util {
         files.map( file => file.pathAsString)
     }
 
-    def handleException(func: () => Option[String]): Option[String] = {
+    def handleException(func: () => Unit): Option[String] = {
         try {
             func()
+            None
         } catch {
             case ex: IOException => Some(ex.getMessage)
             case ex: IllegalArgumentException => Some(ex.getMessage)

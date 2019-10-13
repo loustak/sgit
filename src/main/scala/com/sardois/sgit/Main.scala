@@ -1,30 +1,32 @@
 package com.sardois.sgit
 
-import java.io.IOException
+import java.nio.file.NoSuchFileException
 
 import better.files.File
 
 object Main {
 
-    def call(args: Config, func: (File, File, Config) => Option[String]): Unit = {
-        val error = Repository.callInside(args, func)
-
-        error match {
-            case Some(error) => println(error)
-            case _ =>
+    def call(args: Config, func: (File, File, Config) => Unit): Unit = {
+        try {
+            Repository.callInside(args, func)
+        } catch {
+            case ex: NoSuchFileException => error("File not found: " + ex.getMessage)
+            case ex: Exception => error(ex.toString)
         }
+    }
+
+    def error(str: String): Unit = {
+        println(str)
     }
 
     def main(args : Array[String]): Unit = {
         Parser().parse(args, Config()) match {
             case Some(config) => config.mode match {
                 case "init" => {
-                    val repoFolder = File(Repository.getDirectoryName())
-                    val either = IORepository.init(repoFolder)
-
-                    either match {
-                        case Left(error) => print(error)
-                        case _ =>
+                    val currentFolder = Repository.getCurrentFolder()
+                    IORepository.init(currentFolder) match {
+                        case Left(value) => error(value)
+                        case Right(value) =>
                     }
                 }
 
@@ -33,7 +35,7 @@ object Main {
                 }
 
                 case "rm" => {
-                    call(config, IOIndex.remove)
+                    // call(config, IOIndex.remove)
                 }
 
                 case "status" => {
@@ -41,7 +43,7 @@ object Main {
 
                 case _ =>
             }
-            case _ => print("Unknown command.")
+            case _ =>
         }
     }
 }

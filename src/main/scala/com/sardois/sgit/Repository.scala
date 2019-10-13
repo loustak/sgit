@@ -6,7 +6,8 @@ import scala.annotation.tailrec
 
 object Repository {
 
-    def getDirectoryName(): String = ".sgit"
+    // TODO: change to sgit
+    def getDirectoryName(): String = "vcs"
 
     def getCurrentPath(): String = {
         System.getProperty("user.dir")
@@ -14,10 +15,6 @@ object Repository {
 
     def getCurrentFolder(): File = {
         File(getCurrentPath())
-    }
-
-    def getRepositoryPath(): String = {
-        getCurrentPath() + "/" + getDirectoryName()
     }
 
     /** If it's a sgit repository return the
@@ -34,22 +31,20 @@ object Repository {
             isARepository(parent)
         }
     }
-
     /** Call a function inside a repository, if the repository isn't a
      *  valid sgit repository it returns an error as a string.
      *  It also inject the path of the issued command as a function parameter.
      */
-    def callInside(
-        args: Config,
-        func: (File, File, Config) => Option[String]): 
-            Option[String] = {
-
+    def callInside(args: Config, func: (File, File, Config) => Unit): Unit = {
         val currentFolder = File(getCurrentPath())
         val commandFolder = currentFolder
 
         Repository.isARepository(currentFolder) match {
-            case Some(repoFolder) => func(repoFolder, commandFolder, args)
-            case _ => Some("Not a sgit repository.")
+            case Some(repoFolder) => {
+                // Call the given function and handle some exceptions
+                func(repoFolder, commandFolder, args)
+            }
+            case _ => throw new RuntimeException("Not a sgit repository")
         }
     }
 
@@ -58,7 +53,7 @@ object Repository {
     }
 
     def relativePathFromRepo(repoFolder: File, path: String): String = {
-        path.replace(repoFolder.pathAsString, "")
+        path.replace(repoFolder.parent.pathAsString, "")
     }
 
     /** List recursively all the files and folders inside

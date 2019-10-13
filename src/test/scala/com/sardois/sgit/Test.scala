@@ -1,7 +1,9 @@
 package com.sardois.sgit
 
+import java.io.IOException
+
 import better.files._
-import org.scalatest.FlatSpec
+import org.scalatest.{Assertion, FlatSpec}
 
 import scala.annotation.tailrec
 
@@ -32,10 +34,11 @@ object Test extends FlatSpec {
         scala.util.Random.alphanumeric.filter(_.isLetter).take(length).mkString
     }
 
-    def handleException(func: () => Option[String]) = {
-        func() match {
-            case Some(value) => fail(value)
-            case None =>
+    def handleException(func: () => Unit): Unit = {
+        try {
+            func()
+        } catch {
+            case ex: Exception => fail(ex.getMessage)
         }
     }
 }

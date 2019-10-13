@@ -12,18 +12,43 @@ class Index(private val map: Map[String, String]) {
         Index(map + (path -> sha))
     }
 
-    def add(file: IndexEntry): Index = {
-        val path = file.relativePath
-        val sha = file.sha
+    def add(indexEntry: IndexEntry): Index = {
+        val path = indexEntry.relativePath
+        val sha = indexEntry.sha
         add(path, sha)
     }
 
     def addAll(indexEntries: List[IndexEntry]): Index = {
 
         @tailrec
-        def rec(stagedFiles: List[IndexEntry], index: Index): Index = {
-            stagedFiles match {
+        def rec(indexEntries: List[IndexEntry], index: Index): Index = {
+            indexEntries match {
                 case ::(head, next) => rec(next, index.add(head))
+                case Nil => index
+            }
+        }
+
+        rec(indexEntries, this)
+    }
+
+    def remove(relativePath: String): Index = {
+        if (!map.contains(relativePath)) {
+            throw new RuntimeException("File not in the index: " + relativePath)
+        }
+
+        Index(map - relativePath)
+    }
+
+    def remove(indexEntry: IndexEntry): Index = {
+        remove(indexEntry.relativePath)
+    }
+
+    def removeAll(indexEntries: List[IndexEntry]): Index = {
+
+        @tailrec
+        def rec(indexEntries: List[IndexEntry], index: Index): Index = {
+            indexEntries match {
+                case ::(head, next) => rec(next, index.remove(head))
                 case Nil => index
             }
         }
@@ -159,24 +184,30 @@ object IOIndex {
     }
 
     @impure
-    def add(repoFolder: File, commandFolder: File, args: Config): Option[String] = {
-        Util.handleException( () => {
-            val files = Util.pathsToFiles(args.paths)
-            val blobsFolder = IOBlob.getBlobsFolder(repoFolder)
-            val indexFile = getIndexFile(repoFolder)
-            val index = read(indexFile)
-            val indexEntries = IOIndexEntry.fromFiles(repoFolder, files)
-            val newIndex = index.addAll(indexEntries)
+    def add(repoFolder: File, commandFolder: File, args: Config): Unit = {
+        val files = Util.pathsToFiles(args.paths)
+        val blobsFolder = IOBlob.getBlobsFolder(repoFolder)
+        val indexFile = getIndexFile(repoFolder)
+        val index = read(indexFile)
+        val indexEntries = IOIndexEntry.fromFiles(repoFolder, files)
+        val newIndex = index.addAll(indexEntries)
 
-            write(indexFile, newIndex)
-            IOBlob.writeAll(blobsFolder, files)
-
-            None
-        })
+        write(indexFile, newIndex)
+        IOBlob.writeAll(blobsFolder, files)
     }
 
     @impure
-    def remove(repoFolder: File, commandFolder: File, args: Config): Option[String] = {
-        ???
+    def remove(repoFolder: File, commandFolder: File, args: Config): Unit = {
+        // TODO: Check that the file has been committed
+        val relativePaths = args.paths.map( path => {
+            Repository.relativePathFromRepo(repoFolder, File(path))
+        })
+        val indexEntriesToRemove = IndexEntry.fromPathsWithEmptySha(relativePaths)
+        val indexFile = getIndexFile(repoFolder)
+        val index = read(indexFile)
+
+        val newIndex = index.removeAll(indexEntriesToRemove)
+
+        write(indexFile, newIndex)
     }
 }

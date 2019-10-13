@@ -88,22 +88,6 @@ class RepositoryIndexSpec extends FlatSpec {
         IORepositoryTest.delete(repo)
     }
 
-    it should "returns an error when adding non existing files" in {
-        val repo = IORepositoryTest.init()
-        val file = IOTest.createRandomFile(repo.parent)
-        val filePath = file.pathAsString
-        file.delete()
-
-        val option = IOIndex.add(repo, repo.parent, Config(paths = List(filePath)))
-
-        option match {
-            case Some(_) => succeed
-            case ret => fail("No error message returned, the return was: " + ret.toString)
-        }
-
-        IORepositoryTest.delete(repo)
-    }
-
     it should "be readable" in {
         val repo = IORepositoryTest.init()
         val dir = repo.parent
@@ -116,18 +100,13 @@ class RepositoryIndexSpec extends FlatSpec {
         val filesPath = Util.filesToPath(files)
         IOIndex.add(repo, repo.parent, Config(paths = filesPath))
 
-        Util.handleException(() => {
+        Test.handleException(() => {
             val indexFile = IOIndex.getIndexFile(repo)
             val index = IOIndex.read(indexFile)
 
             assert(indexFile.isRegularFile)
             assert(index.size == files.size)
-
-            None
-        }) match {
-            case Some(value) => fail(value)
-            case None =>
-        }
+        })
 
         IORepositoryTest.delete(repo)
     }
@@ -143,8 +122,6 @@ class RepositoryIndexSpec extends FlatSpec {
             val untrackedFiles = IOIndex.getUntrackedFiles(repo, index, files)
 
             assert(untrackedFiles.size == files.size)
-
-            None
         })
 
         IORepositoryTest.delete(repo)
@@ -165,8 +142,6 @@ class RepositoryIndexSpec extends FlatSpec {
             val untrackedFiles = IOIndex.getUntrackedFiles(repo, index, files)
 
             assert(untrackedFiles.size == files.size)
-
-            None
         })
 
         IORepositoryTest.delete(repo)
@@ -187,8 +162,6 @@ class RepositoryIndexSpec extends FlatSpec {
             val modifiedFiles = IOIndex.getStatusNotStagedModifiedFiles(repo, index, files)
 
             assert(modifiedFiles.size == 1)
-
-            None
         })
 
         IORepositoryTest.delete(repo)
@@ -207,8 +180,6 @@ class RepositoryIndexSpec extends FlatSpec {
             val index = IOIndex.read(indexFile)
             val deletedFiles = IOIndex.getStatusNotStagedDeletedFiles(index, files)
             assert(deletedFiles.size == 1)
-
-            None
         })
 
         IORepositoryTest.delete(repo)
@@ -230,10 +201,26 @@ class RepositoryIndexSpec extends FlatSpec {
             val modifiedFiles = IOIndex.getStatusStagedModifiedFiles(newIndex, oldIndex)
 
             assert(modifiedFiles.size == files.size)
-
-            None
         })
 
         IORepositoryTest.delete(repo)
+    }
+
+    it should "be able to list staged deleted files" in {
+        val repo = IORepositoryTest.init()
+        val file = IOTest.createRandomFile(repo.parent)
+        val files = List(file.pathAsString)
+
+        Test.handleException( () => {
+            IOIndex.add(repo, repo.parent, Config(paths = files))
+            IOCommit.commit(repo, repo.parent, Config(commitMessage =  "Test"))
+            IOIndex.remove(repo, repo.parent, Config(paths = files))
+
+            val newIndex = IOIndex.getIndex(repo)
+            val oldIndex = IOHead.getPointedIndex(repo)
+            val deletedFiles = IOIndex.getStatusStagedDeletedFiles(newIndex, oldIndex)
+
+            assert(deletedFiles.size == files.size)
+        })
     }
 }

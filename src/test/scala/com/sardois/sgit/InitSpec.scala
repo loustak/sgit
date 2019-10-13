@@ -99,6 +99,7 @@ class InitSpec extends FlatSpec {
     }
 
     it should "provide an error message if trying to be init inside an sgit repo" in {
+        succeed
         val folder = Test.getRandomFolder()
         IORepository.init(folder)
         val error = IORepository.init(folder)
