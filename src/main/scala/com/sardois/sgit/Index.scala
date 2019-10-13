@@ -116,6 +116,12 @@ object IOIndex {
     }
 
     @impure
+    def getIndex(repoFolder: File): Index = {
+        val indexFile = getIndexFile(repoFolder)
+        read(indexFile)
+    }
+
+    @impure
     def write(indexFile: File, index: Index): Unit = {
         indexFile.clear()
         indexFile.write(index.toString)
@@ -140,6 +146,16 @@ object IOIndex {
         val indexEntries = IndexEntry.fromPathsWithEmptySha(paths)
         val tmpIndex = Index(indexEntries)
         index.deleted(tmpIndex)
+    }
+
+    @impure
+    def getStatusStagedModifiedFiles(newIndex: Index, oldIndex: Index): List[String] = {
+        oldIndex.modified(newIndex)
+    }
+
+    @impure
+    def getStatusStagedDeletedFiles(newIndex: Index, oldIndex: Index): List[String] = {
+        oldIndex.deleted(newIndex)
     }
 
     @impure

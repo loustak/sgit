@@ -180,15 +180,12 @@ class RepositoryIndexSpec extends FlatSpec {
         Test.handleException( () => {
             // First be sure to track the file inside the repo
             IOIndex.add(repo, repo.parent, Config(paths = files))
-
-            // Then, generate a new content different
-            // from the previous one to get a new sha.
-            val newContent = Test.randomString(file.contentAsString.length + 1)
-            file.write(newContent)
+            IOTest.modifyRandomFile(file)
 
             val indexFile = IOIndex.getIndexFile(repo)
             val index = IOIndex.read(indexFile)
             val modifiedFiles = IOIndex.getStatusNotStagedModifiedFiles(repo, index, files)
+
             assert(modifiedFiles.size == 1)
 
             None
@@ -200,7 +197,6 @@ class RepositoryIndexSpec extends FlatSpec {
     it should "be able to list not staged deleted files" in {
         val repo = IORepositoryTest.init()
         val file = IOTest.createRandomFile(repo.parent)
-
         val files = List(file.pathAsString)
 
         Test.handleException( () => {
@@ -209,8 +205,31 @@ class RepositoryIndexSpec extends FlatSpec {
 
             val indexFile = IOIndex.getIndexFile(repo)
             val index = IOIndex.read(indexFile)
-            val deletedFiles = IOIndex.getStatusNotStagedDeletedFiles(repo, index, files)
+            val deletedFiles = IOIndex.getStatusNotStagedDeletedFiles(index, files)
             assert(deletedFiles.size == 1)
+
+            None
+        })
+
+        IORepositoryTest.delete(repo)
+    }
+
+    it should "be able to list staged modified files" in {
+        val repo = IORepositoryTest.init()
+        val file = IOTest.createRandomFile(repo.parent)
+        val files = List(file.pathAsString)
+
+        Test.handleException( () => {
+            IOIndex.add(repo, repo.parent, Config(paths = files))
+            IOCommit.commit(repo, repo.parent, Config(commitMessage =  "Test"))
+            IOTest.modifyRandomFile(file)
+            IOIndex.add(repo, repo.parent, Config(paths = files))
+
+            val newIndex = IOIndex.getIndex(repo)
+            val oldIndex = IOHead.getPointedIndex(repo)
+            val modifiedFiles = IOIndex.getStatusStagedModifiedFiles(newIndex, oldIndex)
+
+            assert(modifiedFiles.size == files.size)
 
             None
         })

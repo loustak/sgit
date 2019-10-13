@@ -57,6 +57,13 @@ object IOTest {
     }
 
     @impure
+    def modifyRandomFile(file: File): Unit = {
+        val oldContent = file.contentAsString
+        val newContent = Test.randomString(oldContent.length + 1)
+        file.write(newContent)
+    }
+
+    @impure
     def delete(file: File): Unit = {
         file.delete()
     }
