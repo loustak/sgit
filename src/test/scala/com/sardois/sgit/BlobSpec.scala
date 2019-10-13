@@ -15,10 +15,7 @@ class BlobSpec extends FlatSpec {
         val blobsFolder = createBlobsDir(folder)
         val file = IOTest.createRandomFile(folder)
 
-        Test.handleException( () => {
-            IOBlob.write(blobsFolder, file)
-            None
-        })
+        IOBlob.write(blobsFolder, file)
 
         val fileShaName = blobsFolder/Util.shaFile(file)
 
@@ -28,32 +25,13 @@ class BlobSpec extends FlatSpec {
         IOTest.delete(folder)
     }
 
-    it should "return an error if we are trying to write a non existing file" in {
-        val folder = IOTest.createRandomFolder()
-        val blobsFolder = createBlobsDir(folder)
-        val file = Test.getRandomFile(folder)
-
-        Util.handleException(() => {
-            IOBlob.write(blobsFolder, file)
-            None
-        }) match {
-            case Some(value) => succeed
-            case None => fail("No error message provided")
-        }
-
-        IOTest.delete(folder)
-    }
-
     it should "not be created if it as the same sha as another blob" in {
         val folder = IOTest.createRandomFolder()
         val blobsFolder = createBlobsDir(folder)
         val file = IOTest.createRandomFile(folder)
 
-        Util.handleException( () => {
-            IOBlob.write(blobsFolder, file)
-            IOBlob.write(blobsFolder, file)
-            None
-        })
+        IOBlob.write(blobsFolder, file)
+        IOBlob.write(blobsFolder, file)
 
         assert(blobsFolder.listRecursively.size == 1)
 

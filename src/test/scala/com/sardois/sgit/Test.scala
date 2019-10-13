@@ -33,14 +33,6 @@ object Test extends FlatSpec {
     def randomString(length: Int): String = {
         scala.util.Random.alphanumeric.filter(_.isLetter).take(length).mkString
     }
-
-    def handleException(func: () => Unit): Unit = {
-        try {
-            func()
-        } catch {
-            case ex: Exception => fail(ex.getMessage)
-        }
-    }
 }
 
 object IOTest {

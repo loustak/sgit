@@ -7,10 +7,9 @@ class RepositoryIndexSpec extends FlatSpec {
     "A repository index" should "be able to add files" in {
         val repo = IORepositoryTest.init()
         val file = IOTest.createRandomFile(repo.parent)
+        val files = List(file.pathAsString)
 
-        Test.handleException( () => {
-            IOIndex.add(repo, repo.parent, Config(paths = List(file.pathAsString)))
-        })
+        IOIndex.add(repo, repo.parent, Config(paths = files))
 
         val index = repo/Repository.getIndexPath()
         if (!index.exists) {
@@ -18,9 +17,7 @@ class RepositoryIndexSpec extends FlatSpec {
         }
 
         val lines = index.lines().toList
-        if (lines.size < 1) {
-            fail("The number of entries in the index file is incorrect")
-        }
+        assert(lines.size == files.size)
 
         val entry = lines(0)
         val split = entry.split(" ")
@@ -41,11 +38,13 @@ class RepositoryIndexSpec extends FlatSpec {
         val repo = IORepositoryTest.init()
         val nested = (repo.parent/"nested").createDirectories()
         val veryNested = (nested/"nestedAgain").createDirectories()
-        val file = IOTest.createRandomFile(veryNested)
+        IOTest.createRandomFile(veryNested)
 
-        Test.handleException( () => {
-            IOIndex.add(repo, repo.parent, Config(paths = List(file.pathAsString)))
-        })
+        IOIndex.add(repo, repo.parent, Config(paths = List(nested.pathAsString)))
+
+        val indexFile = IOIndex.getIndexFile(repo)
+
+        assert(indexFile.lines.size == 1)
 
         IORepositoryTest.delete(repo)
     }
@@ -72,9 +71,7 @@ class RepositoryIndexSpec extends FlatSpec {
 
         val fileList = List(originalFile.pathAsString, copiedFile.pathAsString)
 
-        Test.handleException( () => {
-            IOIndex.add(repo, repo.parent, Config(paths = fileList))
-        })
+        IOIndex.add(repo, repo.parent, Config(paths = fileList))
 
         // The number of index entry should be two
         val indexFile = IOIndex.getIndexFile(repo)
@@ -100,13 +97,11 @@ class RepositoryIndexSpec extends FlatSpec {
         val filesPath = Util.filesToPath(files)
         IOIndex.add(repo, repo.parent, Config(paths = filesPath))
 
-        Test.handleException(() => {
-            val indexFile = IOIndex.getIndexFile(repo)
-            val index = IOIndex.read(indexFile)
+        val indexFile = IOIndex.getIndexFile(repo)
+        val index = IOIndex.read(indexFile)
 
-            assert(indexFile.isRegularFile)
-            assert(index.size == files.size)
-        })
+        assert(indexFile.isRegularFile)
+        assert(index.size == files.size)
 
         IORepositoryTest.delete(repo)
     }
@@ -116,13 +111,11 @@ class RepositoryIndexSpec extends FlatSpec {
         val file = IOTest.createRandomFile(repo.parent)
         val files = List(file.pathAsString)
 
-        Test.handleException( () => {
-            val indexFile = IOIndex.getIndexFile(repo)
-            val index = IOIndex.read(indexFile)
-            val untrackedFiles = IOIndex.getUntrackedFiles(repo, index, files)
+        val indexFile = IOIndex.getIndexFile(repo)
+        val index = IOIndex.read(indexFile)
+        val untrackedFiles = IOIndex.getUntrackedFiles(repo, index, files)
 
-            assert(untrackedFiles.size == files.size)
-        })
+        assert(untrackedFiles.size == files.size)
 
         IORepositoryTest.delete(repo)
     }
@@ -136,13 +129,11 @@ class RepositoryIndexSpec extends FlatSpec {
 
         val files = List(file1.pathAsString, file2.pathAsString)
 
-        Test.handleException( () => {
-            val indexFile = IOIndex.getIndexFile(repo)
-            val index = IOIndex.read(indexFile)
-            val untrackedFiles = IOIndex.getUntrackedFiles(repo, index, files)
+        val indexFile = IOIndex.getIndexFile(repo)
+        val index = IOIndex.read(indexFile)
+        val untrackedFiles = IOIndex.getUntrackedFiles(repo, index, files)
 
-            assert(untrackedFiles.size == files.size)
-        })
+        assert(untrackedFiles.size == files.size)
 
         IORepositoryTest.delete(repo)
     }
@@ -152,17 +143,15 @@ class RepositoryIndexSpec extends FlatSpec {
         val file = IOTest.createRandomFile(repo.parent)
         val files = List(file.pathAsString)
 
-        Test.handleException( () => {
-            // First be sure to track the file inside the repo
-            IOIndex.add(repo, repo.parent, Config(paths = files))
-            IOTest.modifyRandomFile(file)
+        // First be sure to track the file inside the repo
+        IOIndex.add(repo, repo.parent, Config(paths = files))
+        IOTest.modifyRandomFile(file)
 
-            val indexFile = IOIndex.getIndexFile(repo)
-            val index = IOIndex.read(indexFile)
-            val modifiedFiles = IOIndex.getStatusNotStagedModifiedFiles(repo, index, files)
+        val indexFile = IOIndex.getIndexFile(repo)
+        val index = IOIndex.read(indexFile)
+        val modifiedFiles = IOIndex.getStatusNotStagedModifiedFiles(repo, index, files)
 
-            assert(modifiedFiles.size == 1)
-        })
+        assert(modifiedFiles.size == 1)
 
         IORepositoryTest.delete(repo)
     }
@@ -172,15 +161,13 @@ class RepositoryIndexSpec extends FlatSpec {
         val file = IOTest.createRandomFile(repo.parent)
         val files = List(file.pathAsString)
 
-        Test.handleException( () => {
-            IOIndex.add(repo, repo.parent, Config(paths = files))
-            file.delete()
+        IOIndex.add(repo, repo.parent, Config(paths = files))
+        file.delete()
 
-            val indexFile = IOIndex.getIndexFile(repo)
-            val index = IOIndex.read(indexFile)
-            val deletedFiles = IOIndex.getStatusNotStagedDeletedFiles(index, files)
-            assert(deletedFiles.size == 1)
-        })
+        val indexFile = IOIndex.getIndexFile(repo)
+        val index = IOIndex.read(indexFile)
+        val deletedFiles = IOIndex.getStatusNotStagedDeletedFiles(index, files)
+        assert(deletedFiles.size == 1)
 
         IORepositoryTest.delete(repo)
     }
@@ -190,18 +177,16 @@ class RepositoryIndexSpec extends FlatSpec {
         val file = IOTest.createRandomFile(repo.parent)
         val files = List(file.pathAsString)
 
-        Test.handleException( () => {
-            IOIndex.add(repo, repo.parent, Config(paths = files))
-            IOCommit.commit(repo, repo.parent, Config(commitMessage =  "Test"))
-            IOTest.modifyRandomFile(file)
-            IOIndex.add(repo, repo.parent, Config(paths = files))
+        IOIndex.add(repo, repo.parent, Config(paths = files))
+        IOCommit.commit(repo, repo.parent, Config(commitMessage =  "Test"))
+        IOTest.modifyRandomFile(file)
+        IOIndex.add(repo, repo.parent, Config(paths = files))
 
-            val newIndex = IOIndex.getIndex(repo)
-            val oldIndex = IOHead.getPointedIndex(repo)
-            val modifiedFiles = IOIndex.getStatusStagedModifiedFiles(newIndex, oldIndex)
+        val newIndex = IOIndex.getIndex(repo)
+        val oldIndex = IOHead.getPointedIndex(repo)
+        val modifiedFiles = IOIndex.getStatusStagedModifiedFiles(newIndex, oldIndex)
 
-            assert(modifiedFiles.size == files.size)
-        })
+        assert(modifiedFiles.size == files.size)
 
         IORepositoryTest.delete(repo)
     }
@@ -211,16 +196,14 @@ class RepositoryIndexSpec extends FlatSpec {
         val file = IOTest.createRandomFile(repo.parent)
         val files = List(file.pathAsString)
 
-        Test.handleException( () => {
-            IOIndex.add(repo, repo.parent, Config(paths = files))
-            IOCommit.commit(repo, repo.parent, Config(commitMessage =  "Test"))
-            IOIndex.remove(repo, repo.parent, Config(paths = files))
+        IOIndex.add(repo, repo.parent, Config(paths = files))
+        IOCommit.commit(repo, repo.parent, Config(commitMessage =  "Test"))
+        IOIndex.remove(repo, repo.parent, Config(paths = files))
 
-            val newIndex = IOIndex.getIndex(repo)
-            val oldIndex = IOHead.getPointedIndex(repo)
-            val deletedFiles = IOIndex.getStatusStagedDeletedFiles(newIndex, oldIndex)
+        val newIndex = IOIndex.getIndex(repo)
+        val oldIndex = IOHead.getPointedIndex(repo)
+        val deletedFiles = IOIndex.getStatusStagedDeletedFiles(newIndex, oldIndex)
 
-            assert(deletedFiles.size == files.size)
-        })
+        assert(deletedFiles.size == files.size)
     }
 }

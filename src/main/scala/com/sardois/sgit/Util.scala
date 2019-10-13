@@ -5,6 +5,8 @@ import java.security.MessageDigest
 
 import better.files._
 
+import scala.annotation.tailrec
+
 object Util {
 
     def shaFile(file: File): String = {
@@ -28,15 +30,21 @@ object Util {
         files.map( file => file.pathAsString)
     }
 
-    def handleException(func: () => Unit): Option[String] = {
-        try {
-            func()
-            None
-        } catch {
-            case ex: IOException => Some(ex.getMessage)
-            case ex: IllegalArgumentException => Some(ex.getMessage)
-            case ex: RuntimeException => Some(ex.getMessage)
-        }
+    def getNestedFiles(files: List[File]): List[File] = {
+        files.flatMap( file => {
+            if (file.isDirectory) file.listRecursively
+            else List(file)
+        })
+    }
+
+    def removeDirectories(files: List[File]): List[File] = {
+        files.filter( file => !file.isDirectory)
+    }
+
+    def pathsToUsableFiles(paths: List[String]): List[File] = {
+        val files = pathsToFiles(paths)
+        val nestedFiles = getNestedFiles(files)
+        removeDirectories(nestedFiles)
     }
 }
 

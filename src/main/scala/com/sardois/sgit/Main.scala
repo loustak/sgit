@@ -1,8 +1,10 @@
 package com.sardois.sgit
 
+import java.io.IOException
 import java.nio.file.NoSuchFileException
 
 import better.files.File
+
 
 object Main {
 
@@ -22,6 +24,7 @@ object Main {
     def main(args : Array[String]): Unit = {
         Parser().parse(args, Config()) match {
             case Some(config) => config.mode match {
+
                 case "init" => {
                     val currentFolder = Repository.getCurrentFolder()
                     IORepository.init(currentFolder) match {
@@ -35,7 +38,7 @@ object Main {
                 }
 
                 case "rm" => {
-                    // call(config, IOIndex.remove)
+                    call(config, IOIndex.remove)
                 }
 
                 case "status" => {

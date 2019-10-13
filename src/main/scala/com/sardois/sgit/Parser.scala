@@ -11,19 +11,19 @@ object Parser {
         .action((_, c) => c.copy(mode = "init"))
         .text("Create a sgit repository in the current directory.")
 
+        cmd(name = "add")
+            .action((_, c) => c.copy(mode = "add"))
+            .text("Add file contents to the index.")
+            .children(
+                arg[String](name = "<file>...")
+                    .unbounded()
+                    .action((x, c) => c.copy(paths = c.paths :+ x))
+                    .text("list of files to add"),
+            )
+
       cmd(name = "status")
         .action((_, c) => c.copy(mode = "status"))
         .text("Show the working tree status.")
-
-      cmd(name = "add")
-        .action((_, c) => c.copy(mode = "add"))
-        .text("Add file contents to the index.")
-        .children(
-          arg[String](name = "<file>...")
-            .unbounded()
-            .action((x, c) => c.copy(paths = c.paths :+ x))
-            .text("list of files to add"),
-        )
 
       cmd(name = "commit")
         .action((_, c) => c.copy(mode = "add"))

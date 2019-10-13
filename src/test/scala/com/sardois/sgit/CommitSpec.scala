@@ -9,10 +9,8 @@ class CommitSpec extends FlatSpec {
         val file = IOTest.createRandomFile(repo.parent)
         val message = "Test commit"
 
-        Test.handleException( () => {
-            IOIndex.add(repo, repo.parent, Config(paths = List(file.pathAsString)))
-            IOCommit.commit(repo, repo.parent, Config(commitMessage = message))
-        })
+        IOIndex.add(repo, repo.parent, Config(paths = List(file.pathAsString)))
+        IOCommit.commit(repo, repo.parent, Config(commitMessage = message))
 
         val indexFile = IOIndex.getIndexFile(repo)
         val index = IOIndex.read(indexFile)
@@ -40,10 +38,8 @@ class CommitSpec extends FlatSpec {
         val file = IOTest.createRandomFile(repo.parent)
         val message = "Test commit"
 
-        Test.handleException( () => {
-            IOIndex.add(repo, repo.parent, Config(paths = List(file.pathAsString)))
-            IOCommit.commit(repo, repo.parent, Config(commitMessage = message))
-        })
+        IOIndex.add(repo, repo.parent, Config(paths = List(file.pathAsString)))
+        IOCommit.commit(repo, repo.parent, Config(commitMessage = message))
 
         val commitSha = IOHead.getPointedCommitSha(repo)
         val commitsFolder = IOCommit.getCommitsFolder(repo)

@@ -185,7 +185,7 @@ object IOIndex {
 
     @impure
     def add(repoFolder: File, commandFolder: File, args: Config): Unit = {
-        val files = Util.pathsToFiles(args.paths)
+        val files = Util.pathsToUsableFiles(args.paths)
         val blobsFolder = IOBlob.getBlobsFolder(repoFolder)
         val indexFile = getIndexFile(repoFolder)
         val index = read(indexFile)

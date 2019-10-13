@@ -89,29 +89,25 @@ object IOCommit {
     }
 
     @impure
-    def commit(repoFolder: File, commandFolder: File, args: Config): Option[String] = {
-        Util.handleException( () => {
-            val message = args.commitMessage
-            val commitsFolder = getCommitsFolder(repoFolder)
-            val indexFile = IOIndex.getIndexFile(repoFolder)
-            val index = IOIndex.read(indexFile)
-            val indexSha = index.sha()
+    def commit(repoFolder: File, commandFolder: File, args: Config): Unit = {
+        val message = args.commitMessage
+        val commitsFolder = getCommitsFolder(repoFolder)
+        val indexFile = IOIndex.getIndexFile(repoFolder)
+        val index = IOIndex.read(indexFile)
+        val indexSha = index.sha()
 
-            val checkableHeadFile = IOHead.getCheckableFile(repoFolder)
-            val parentCommitSha = IOHead.getPointedCommitSha(repoFolder)
-            val newCommit = Commit(message, indexSha, parentCommitSha)
+        val checkableHeadFile = IOHead.getCheckableFile(repoFolder)
+        val parentCommitSha = IOHead.getPointedCommitSha(repoFolder)
+        val newCommit = Commit(message, indexSha, parentCommitSha)
 
-            write(commitsFolder, newCommit)
+        write(commitsFolder, newCommit)
 
-            // Save the new index file
-            val indexFolder = IOIndex.getIndexesFolder(repoFolder)
-            val newIndexFile = indexFolder/indexSha
-            IOIndex.write(newIndexFile, index)
+        // Save the new index file
+        val indexFolder = IOIndex.getIndexesFolder(repoFolder)
+        val newIndexFile = indexFolder/indexSha
+        IOIndex.write(newIndexFile, index)
 
-            // Update the commit referenced by the head
-            IOCheckable.setToSha(checkableHeadFile, newCommit.sha())
-
-            None
-        })
+        // Update the commit referenced by the head
+        IOCheckable.setToSha(checkableHeadFile, newCommit.sha())
     }
 }
