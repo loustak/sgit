@@ -32,11 +32,18 @@ class Index(private val map: Map[String, String]) {
     }
 
     def remove(relativePath: String): Index = {
+        /*
         if (!map.contains(relativePath)) {
             throw new RuntimeException("File not in the index: " + relativePath)
         }
+        */
 
-        Index(map - relativePath)
+        val newMap = map.filter( tuple => {
+            val key = tuple._1
+            !key.contains(relativePath)
+        })
+
+        Index(newMap)
     }
 
     def remove(indexEntry: IndexEntry): Index = {
@@ -60,6 +67,10 @@ class Index(private val map: Map[String, String]) {
         otherIndex.map.keys.filter( key => {
             !map.contains(key)
         }).toList
+    }
+
+    def newfiles(otherIndex: Index): List[String] = {
+        ???
     }
 
     def modified(otherIndex: Index): List[String] = {
@@ -174,13 +185,21 @@ object IOIndex {
     }
 
     @impure
+    def getStatusStagedNewFiles(newIndex: Index, oldIndex: Index): List[String] = {
+        // oldIndex.newfiles(newIndex)
+        ???
+    }
+
+    @impure
     def getStatusStagedModifiedFiles(newIndex: Index, oldIndex: Index): List[String] = {
-        oldIndex.modified(newIndex)
+        //oldIndex.modified(newIndex)
+        newIndex.modified(oldIndex)
     }
 
     @impure
     def getStatusStagedDeletedFiles(newIndex: Index, oldIndex: Index): List[String] = {
-        oldIndex.deleted(newIndex)
+        //oldIndex.deleted(newIndex)
+        newIndex.deleted(oldIndex)
     }
 
     @impure
@@ -192,16 +211,16 @@ object IOIndex {
         // Split files in two, the one to try to add
         // and the one that must be deleted
         val files = Util.pathsToFiles(args.paths)
-        val (filesToAdd, filesToRemove) = files.partition( file => {
+        val filesToAdd  = files.filter( file => {
             file.exists
         })
 
         val filesToAddCleaned = Util.removeDirectories(Util.getNestedFiles(filesToAdd))
-        val filesToRemoveCleaned = Repository.relativizesFile(repoFolder, filesToRemove)
+        val filesToRemoveCleaned = Repository.relativizesFile(repoFolder, files)
 
         val indexEntriesToAdd = IOIndexEntry.fromFiles(repoFolder, filesToAddCleaned)
         val indexEntriesToRemove = IndexEntry.fromPathsWithEmptySha(filesToRemoveCleaned)
-        val newIndex = index.addAll(indexEntriesToAdd).removeAll(indexEntriesToRemove)
+        val newIndex = index.removeAll(indexEntriesToRemove).addAll(indexEntriesToAdd)
 
         write(indexFile, newIndex)
         IOBlob.writeAll(blobsFolder, filesToAddCleaned)

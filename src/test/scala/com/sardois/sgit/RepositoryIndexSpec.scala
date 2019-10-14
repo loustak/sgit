@@ -63,6 +63,43 @@ class RepositoryIndexSpec extends FlatSpec {
         IORepositoryTest.delete(repo)
     }
 
+    it should "be able to add files and deleted files" in {
+        val repo = IORepositoryTest.init()
+        val folder = (repo.parent/"folder").createDirectories()
+        val file = IOTest.createRandomFile(folder)
+        IOTest.createRandomFile(folder)
+        val files = Util.filesToPath(List(folder))
+
+        IOIndex.add(repo, repo.parent, Config(paths = files))
+
+        val firstIndexFile = IOIndex.getIndexFile(repo)
+        assert(firstIndexFile.lines.size == 2)
+
+        file.delete()
+        IOIndex.add(repo, repo.parent, Config(paths = files))
+
+        val secondIndexFile = IOIndex.getIndexFile(repo)
+        assert(secondIndexFile.lines.size == 1)
+
+        IORepositoryTest.delete(repo)
+    }
+
+    it should "be able to add deleted files in nested folder" in {
+        val repo = IORepositoryTest.init()
+        val folder = (repo.parent/"folder").createDirectories()
+        val file = IOTest.createRandomFile(folder)
+        val files = List(folder.pathAsString)
+
+        IOIndex.add(repo, repo.parent, Config(paths = files))
+        file.delete()
+        IOIndex.add(repo, repo.parent, Config(paths = files))
+
+        val indexFile = IOIndex.getIndexFile(repo)
+        assert(indexFile.lines.size == 0)
+
+        IORepositoryTest.delete(repo)
+    }
+
     it should "write added files as blobs" in {
         val repo = IORepositoryTest.init()
         val file = IOTest.createRandomFile(repo.parent)
@@ -219,5 +256,7 @@ class RepositoryIndexSpec extends FlatSpec {
         val deletedFiles = IOIndex.getStatusStagedDeletedFiles(newIndex, oldIndex)
 
         assert(deletedFiles.size == files.size)
+
+        IORepositoryTest.delete(repo)
     }
 }
