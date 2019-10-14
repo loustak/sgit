@@ -38,7 +38,7 @@ object IOIndexEntry {
 
     def fromFiles(repoFolder: File, files: List[File]): List[IndexEntry] = {
         files.map( file => {
-            val relativePath = Repository.relativePathFromRepo(repoFolder, file)
+            val relativePath = Repository.relativize(repoFolder, file)
             val sha = Util.shaFile(file)
             IndexEntry(relativePath, sha)
         })

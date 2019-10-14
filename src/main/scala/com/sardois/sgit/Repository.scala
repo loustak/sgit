@@ -48,12 +48,24 @@ object Repository {
         }
     }
 
-    def relativePathFromRepo(repoFolder: File, file: File): String = {
+    def relativize(repoFolder: File, file: File): String = {
         repoFolder.parent.relativize(file).toString
     }
 
-    def relativePathFromRepo(repoFolder: File, path: String): String = {
+    def relativize(repoFolder: File, path: String): String = {
         path.replace(repoFolder.parent.pathAsString, "")
+    }
+
+    def relativizesPath(repoFolder: File, paths: List[String]): List[String] = {
+        paths.map( path => {
+            relativize(repoFolder, path)
+        })
+    }
+
+    def relativizesFile(repoFolder: File, files: List[File]): List[String] = {
+        files.map( file => {
+            relativize(repoFolder, file)
+        })
     }
 
     /** List recursively all the files and folders inside

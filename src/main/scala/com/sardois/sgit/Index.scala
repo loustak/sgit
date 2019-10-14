@@ -185,22 +185,33 @@ object IOIndex {
 
     @impure
     def add(repoFolder: File, commandFolder: File, args: Config): Unit = {
-        val files = Util.pathsToUsableFiles(args.paths)
         val blobsFolder = IOBlob.getBlobsFolder(repoFolder)
         val indexFile = getIndexFile(repoFolder)
         val index = read(indexFile)
-        val indexEntries = IOIndexEntry.fromFiles(repoFolder, files)
-        val newIndex = index.addAll(indexEntries)
+
+        // Split files in two, the one to try to add
+        // and the one that must be deleted
+        val files = Util.pathsToFiles(args.paths)
+        val (filesToAdd, filesToRemove) = files.partition( file => {
+            file.exists
+        })
+
+        val filesToAddCleaned = Util.removeDirectories(Util.getNestedFiles(filesToAdd))
+        val filesToRemoveCleaned = Repository.relativizesFile(repoFolder, filesToRemove)
+
+        val indexEntriesToAdd = IOIndexEntry.fromFiles(repoFolder, filesToAddCleaned)
+        val indexEntriesToRemove = IndexEntry.fromPathsWithEmptySha(filesToRemoveCleaned)
+        val newIndex = index.addAll(indexEntriesToAdd).removeAll(indexEntriesToRemove)
 
         write(indexFile, newIndex)
-        IOBlob.writeAll(blobsFolder, files)
+        IOBlob.writeAll(blobsFolder, filesToAddCleaned)
     }
 
     @impure
     def remove(repoFolder: File, commandFolder: File, args: Config): Unit = {
         // TODO: Check that the file has been committed
         val relativePaths = args.paths.map( path => {
-            Repository.relativePathFromRepo(repoFolder, File(path))
+            Repository.relativize(repoFolder, File(path))
         })
         val indexEntriesToRemove = IndexEntry.fromPathsWithEmptySha(relativePaths)
         val indexFile = getIndexFile(repoFolder)

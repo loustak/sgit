@@ -28,7 +28,7 @@ class RepositoryIndexSpec extends FlatSpec {
         val path = split(0)
         val sha = split(1)
 
-        assert(path == Repository.relativePathFromRepo(repo, file))
+        assert(path == Repository.relativize(repo, file))
         assert(sha == Util.shaFile(file))
 
         IORepositoryTest.delete(repo)
@@ -43,8 +43,22 @@ class RepositoryIndexSpec extends FlatSpec {
         IOIndex.add(repo, repo.parent, Config(paths = List(nested.pathAsString)))
 
         val indexFile = IOIndex.getIndexFile(repo)
-
         assert(indexFile.lines.size == 1)
+
+        IORepositoryTest.delete(repo)
+    }
+
+    it should "be able to add deleted file" in {
+        val repo = IORepositoryTest.init()
+        val file = IOTest.createRandomFile(repo.parent)
+        val files = List(file.pathAsString)
+
+        IOIndex.add(repo, repo.parent, Config(paths = files))
+        file.delete()
+        IOIndex.add(repo, repo.parent, Config(paths = files))
+
+        val indexFile = IOIndex.getIndexFile(repo)
+        assert(indexFile.lines.size == 0)
 
         IORepositoryTest.delete(repo)
     }
