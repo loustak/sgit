@@ -69,6 +69,11 @@ object IOHead {
     @impure
     def getPointedIndex(repoFolder: File): Index = {
         val commit = getPointedCommit(repoFolder)
+
+        if (commit.sha() == Commit.root.sha()) {
+            return Index()
+        }
+
         val indexSha = commit.indexSha
         val indexFolder = IOIndex.getIndexesFolder(repoFolder)
         IOIndex.read(indexFolder, indexSha)

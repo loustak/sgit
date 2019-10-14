@@ -35,7 +35,7 @@ object Repository {
      *  valid sgit repository it returns an error as a string.
      *  It also inject the path of the issued command as a function parameter.
      */
-    def callInside(args: Config, func: (File, File, Config) => Unit): Unit = {
+    def callInside(args: Config, func: (File, File, Config) => Option[String]): Option[String] = {
         val currentFolder = File(getCurrentPath())
         val commandFolder = currentFolder
 
@@ -128,7 +128,7 @@ object IORepository {
         // Write the checkables/branches and the master branch
         val heads = repoFolder/Repository.getBranchesPath()
         heads.createDirectories()
-        val master = Branch.master()
+        val master = Branch.master
         IOCheckable.create(repoFolder, master)
 
         // Write the head

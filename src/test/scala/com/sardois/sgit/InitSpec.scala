@@ -10,10 +10,11 @@ class InitSpec extends FlatSpec {
         IORepositoryTest.delete(repo)
     }
 
-    it should "create an empty indexes folder" in {
+    it should "create an indexes folder" in {
         val repo = IORepositoryTest.init()
         val indexFolder = repo/Repository.getIndexesPath()
-        assert(indexFolder.isEmpty)
+        assert(indexFolder.exists)
+        assert(indexFolder.isDirectory)
         IORepositoryTest.delete(repo)
     }
 
@@ -26,7 +27,7 @@ class InitSpec extends FlatSpec {
         IORepositoryTest.delete(repo)
     }
 
-    it should "have an empty objects folder" in {
+    it should "create an empty objects folder" in {
         val repo = IORepositoryTest.init()
         val blobs = repo/Repository.getBlobsPath()
         assert(blobs.isDirectory)
@@ -34,11 +35,11 @@ class InitSpec extends FlatSpec {
         IORepositoryTest.delete(repo)
     }
 
-    it should "have an empty commits folder" in {
+    it should "create a commits folder" in {
         val repo = IORepositoryTest.init()
         val commits = repo/Repository.getCommitsPath()
+        assert(commits.exists)
         assert(commits.isDirectory)
-        assert(commits.isEmpty)
         IORepositoryTest.delete(repo)
     }
 
@@ -59,13 +60,14 @@ class InitSpec extends FlatSpec {
     it should "have it's master branch written" in {
         val repo = IORepositoryTest.init()
         val heads = repo/Repository.getBranchesPath()
-        val masterBranch = Branch.master()
+        val masterBranch = Branch.master
         val masterFile = heads/masterBranch.name
+        val rootCommit = IOHead.getPointedCommit(repo)
 
         // Check that the branch file exists, and
         // the pointed commit is the root commit.
         assert(masterFile.isRegularFile)
-        assert(masterFile.contentAsString == masterBranch.commitSha)
+        assert(masterFile.contentAsString == rootCommit.sha())
 
         IORepositoryTest.delete(repo)
     }
@@ -74,7 +76,7 @@ class InitSpec extends FlatSpec {
         val repo = IORepositoryTest.init()
         val head = repo/Repository.getHeadPath()
         val text = head.lines().toList
-        val master = Branch.master()
+        val master = Branch.master
 
         if (text.size != 1) fail("Invalid numbers of lines in the HEAD file")
 
@@ -96,21 +98,6 @@ class InitSpec extends FlatSpec {
         assert(tags.isDirectory)
         assert(tags.isEmpty)
         IORepositoryTest.delete(repo)
-    }
-
-    it should "provide an error message if trying to be init inside an sgit repo" in {
-        succeed
-        val folder = Test.getRandomFolder()
-        IORepository.init(folder)
-        val error = IORepository.init(folder)
-        IOTest.delete(folder)
-
-        error match {
-            case Right(_) => {
-                fail("Repository was still created")
-            }
-            case _ => succeed
-        }
     }
 
     it should "provide an error message if trying to be init inside a nested fodler of an sgit repo" in {

@@ -46,5 +46,11 @@ object Util {
         val nestedFiles = getNestedFiles(files)
         removeDirectories(nestedFiles)
     }
+
+    def formatList(list: List[String], symbol: String): String = {
+        list.map( elem => {
+            symbol + elem.toString
+        }).mkString(System.lineSeparator())
+    }
 }
 

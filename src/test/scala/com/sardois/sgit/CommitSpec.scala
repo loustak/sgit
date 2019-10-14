@@ -15,7 +15,7 @@ class CommitSpec extends FlatSpec {
         val indexFile = IOIndex.getIndexFile(repo)
         val index = IOIndex.read(indexFile)
         val indexSha = index.sha()
-        val commit = Commit(message, indexSha, Commit.rootCommitSha())
+        val commit = Commit(message, indexSha, Commit.root.sha())
         val newCommitFile = repo/Repository.getCommitsPath()/commit.sha()
 
         // The format of the commit is correct
@@ -41,10 +41,11 @@ class CommitSpec extends FlatSpec {
         IOIndex.add(repo, repo.parent, Config(paths = List(file.pathAsString)))
         IOCommit.commit(repo, repo.parent, Config(commitMessage = message))
 
-        val commitSha = IOHead.getPointedCommitSha(repo)
         val commitsFolder = IOCommit.getCommitsFolder(repo)
+        val commitSha = IOHead.getPointedCommitSha(repo)
         val commit = IOCommit.read(commitsFolder, commitSha)
 
+        assert(commit.message == message)
         assert(commit.sha() == commitSha)
 
         IORepositoryTest.delete(repo)

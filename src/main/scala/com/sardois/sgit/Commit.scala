@@ -35,8 +35,8 @@ object Commit {
         new Commit(message, indexSha, parentCommitSha, author, date)
     }
 
-    def rootCommitSha(): String = {
-        Util.shaString("ROOT COMMIT")
+    def root: Commit = {
+        new Commit("Root commit", Index().sha(), "", "", "")
     }
 }
 
@@ -68,8 +68,8 @@ object IOCommit {
 
     @impure
     def read(commitFolder: File, commitSha: String): Commit = {
-        if (commitSha == Commit.rootCommitSha()) {
-            throw new IllegalArgumentException("Trying to read the root commit is forbidden")
+        if (commitSha == Commit.root.sha()) {
+            return Commit.root
         }
 
         val commitFile = commitFolder/commitSha
@@ -89,7 +89,7 @@ object IOCommit {
     }
 
     @impure
-    def commit(repoFolder: File, commandFolder: File, args: Config): Unit = {
+    def commit(repoFolder: File, commandFolder: File, args: Config): Option[String] = {
         val message = args.commitMessage
         val commitsFolder = getCommitsFolder(repoFolder)
         val indexFile = IOIndex.getIndexFile(repoFolder)
@@ -109,5 +109,7 @@ object IOCommit {
 
         // Update the commit referenced by the head
         IOCheckable.setToSha(checkableHeadFile, newCommit.sha())
+
+        None
     }
 }

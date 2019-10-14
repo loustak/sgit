@@ -167,36 +167,36 @@ object IOIndex {
     }
 
     @impure
-    def getStatusNotStagedModifiedFiles(repoFolder: File, index: Index, paths: List[String]): List[String] = {
+    def getNotStagedModifiedFiles(repoFolder: File, index: Index, paths: List[String]): List[String] = {
         val indexEntries = IOIndexEntry.fromPaths(repoFolder, paths)
         val tmpIndex = Index(indexEntries)
         index.modified(tmpIndex)
     }
 
     @impure
-    def getStatusNotStagedDeletedFiles(index: Index, paths: List[String]): List[String] = {
+    def getNotStagedDeletedFiles(index: Index, paths: List[String]): List[String] = {
         val indexEntries = IndexEntry.fromPathsWithEmptySha(paths)
         val tmpIndex = Index(indexEntries)
         index.deleted(tmpIndex)
     }
 
     @impure
-    def getStatusStagedNewFiles(newIndex: Index, oldIndex: Index): List[String] = {
+    def getStagedNewFiles(newIndex: Index, oldIndex: Index): List[String] = {
         newIndex.newfiles(oldIndex)
     }
 
     @impure
-    def getStatusStagedModifiedFiles(newIndex: Index, oldIndex: Index): List[String] = {
+    def getStagedModifiedFiles(newIndex: Index, oldIndex: Index): List[String] = {
         newIndex.modified(oldIndex)
     }
 
     @impure
-    def getStatusStagedDeletedFiles(newIndex: Index, oldIndex: Index): List[String] = {
+    def getStagedDeletedFiles(newIndex: Index, oldIndex: Index): List[String] = {
         newIndex.deleted(oldIndex)
     }
 
     @impure
-    def add(repoFolder: File, commandFolder: File, args: Config): Unit = {
+    def add(repoFolder: File, commandFolder: File, args: Config): Option[String] = {
         val blobsFolder = IOBlob.getBlobsFolder(repoFolder)
         val indexFile = getIndexFile(repoFolder)
         val index = read(indexFile)
@@ -204,9 +204,7 @@ object IOIndex {
         // Split files in two, the one to try to add
         // and the one that must be deleted
         val files = Util.pathsToFiles(args.paths)
-        val filesToAdd  = files.filter( file => {
-            file.exists
-        })
+        val filesToAdd  = files.filter( file => file.exists)
 
         val filesToAddCleaned = Util.removeDirectories(Util.getNestedFiles(filesToAdd))
         val filesToRemoveCleaned = Repository.relativizesFile(repoFolder, files)
@@ -217,11 +215,13 @@ object IOIndex {
 
         write(indexFile, newIndex)
         IOBlob.writeAll(blobsFolder, filesToAddCleaned)
+
+        None
     }
 
     @impure
-    def remove(repoFolder: File, commandFolder: File, args: Config): Unit = {
-        // TODO: Check that the file has been committed
+    def remove(repoFolder: File, commandFolder: File, args: Config): Option[String] = {
+        // TODO: Check that the file has been committed, it this function needed?
         val relativePaths = args.paths.map( path => {
             Repository.relativize(repoFolder, File(path))
         })
@@ -232,5 +232,42 @@ object IOIndex {
         val newIndex = index.removeAll(indexEntriesToRemove)
 
         write(indexFile, newIndex)
+
+        None
+    }
+
+    @impure
+    def status(repoFolder: File, commandFolder: File, args: Config): Option[String] = {
+        val index = IOIndex.getIndex(repoFolder)
+        val oldIndex = IOHead.getPointedIndex(repoFolder)
+
+        val files = Util.removeDirectories(repoFolder.parent.listRecursively.toList)
+        val paths = Util.filesToPath(files)
+
+        val untrackedFiles = getUntrackedFiles(repoFolder, index, paths)
+        val notStagedModifiedFiles = getNotStagedModifiedFiles(repoFolder, index, paths)
+        val notStagedDeletedFiles = getNotStagedDeletedFiles(index, paths)
+        val stagedNewFiles = getStagedNewFiles(index, oldIndex)
+        val stagedModifiedFiles = getStagedModifiedFiles(index, oldIndex)
+        val stagedDeletedFiles = getStagedDeletedFiles(index, oldIndex)
+
+        val newLine = System.lineSeparator()
+
+        val stagedNewFilesString = Util.formatList(stagedNewFiles, "added ")
+        val stagedModifiedFilesString = Util.formatList(stagedModifiedFiles, "modified ")
+        val stagedDeletedFilesString = Util.formatList(stagedDeletedFiles, "removed ")
+
+        val notStagedModifiedFilesString = Util.formatList(notStagedModifiedFiles, "modified ")
+        val notStagedDeletedFilesString = Util.formatList(notStagedDeletedFiles, "removed ")
+
+        val untrackedString = Util.formatList(untrackedFiles, "untracked ")
+
+        val stringList = List(
+            "Staged files:", stagedNewFilesString, stagedModifiedFilesString, stagedDeletedFilesString,
+            "Not staged files:", notStagedModifiedFilesString, notStagedDeletedFilesString,
+            "Not tracked files:", untrackedString
+        )
+
+        Some(stringList.mkString(newLine))
     }
 }

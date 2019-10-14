@@ -200,7 +200,7 @@ class RepositoryIndexSpec extends FlatSpec {
 
         val indexFile = IOIndex.getIndexFile(repo)
         val index = IOIndex.read(indexFile)
-        val modifiedFiles = IOIndex.getStatusNotStagedModifiedFiles(repo, index, files)
+        val modifiedFiles = IOIndex.getNotStagedModifiedFiles(repo, index, files)
 
         assert(modifiedFiles.size == 1)
 
@@ -217,7 +217,7 @@ class RepositoryIndexSpec extends FlatSpec {
 
         val indexFile = IOIndex.getIndexFile(repo)
         val index = IOIndex.read(indexFile)
-        val deletedFiles = IOIndex.getStatusNotStagedDeletedFiles(index, files)
+        val deletedFiles = IOIndex.getNotStagedDeletedFiles(index, files)
         assert(deletedFiles.size == 1)
 
         IORepositoryTest.delete(repo)
@@ -237,7 +237,7 @@ class RepositoryIndexSpec extends FlatSpec {
 
         val newIndex = IOIndex.getIndex(repo)
         val oldIndex = IOHead.getPointedIndex(repo)
-        val addedFiles = IOIndex.getStatusStagedNewFiles(newIndex, oldIndex)
+        val addedFiles = IOIndex.getStagedNewFiles(newIndex, oldIndex)
 
         assert(addedFiles.size == 1)
 
@@ -256,7 +256,7 @@ class RepositoryIndexSpec extends FlatSpec {
 
         val newIndex = IOIndex.getIndex(repo)
         val oldIndex = IOHead.getPointedIndex(repo)
-        val modifiedFiles = IOIndex.getStatusStagedModifiedFiles(newIndex, oldIndex)
+        val modifiedFiles = IOIndex.getStagedModifiedFiles(newIndex, oldIndex)
 
         assert(modifiedFiles.size == files.size)
 
@@ -274,9 +274,19 @@ class RepositoryIndexSpec extends FlatSpec {
 
         val newIndex = IOIndex.getIndex(repo)
         val oldIndex = IOHead.getPointedIndex(repo)
-        val deletedFiles = IOIndex.getStatusStagedDeletedFiles(newIndex, oldIndex)
+        val deletedFiles = IOIndex.getStagedDeletedFiles(newIndex, oldIndex)
 
         assert(deletedFiles.size == files.size)
+
+        IORepositoryTest.delete(repo)
+    }
+
+    it should "return a string when asking for the status" in {
+        val repo = IORepositoryTest.init()
+
+        val str = IOIndex.status(repo, repo.parent, Config())
+
+        assert(str.size > 0)
 
         IORepositoryTest.delete(repo)
     }

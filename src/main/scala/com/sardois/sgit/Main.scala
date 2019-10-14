@@ -8,15 +8,25 @@ import better.files.File
 
 object Main {
 
-    def call(args: Config, func: (File, File, Config) => Unit): Unit = {
+    @impure
+    def call(args: Config, func: (File, File, Config) => Option[String]): Unit = {
         try {
-            Repository.callInside(args, func)
+            Repository.callInside(args, func) match {
+                case Some(value) => print(value)
+                case None =>
+            }
         } catch {
             case ex: NoSuchFileException => error("File not found: " + ex.getMessage)
-            case ex: Exception => error(ex.toString)
+            case ex: Throwable => error(ex.getMessage)
         }
     }
 
+    @impure
+    def print(str: String): Unit = {
+        println(str)
+    }
+
+    @impure
     def error(str: String): Unit = {
         println(str)
     }
@@ -41,12 +51,17 @@ object Main {
                     call(config, IOIndex.remove)
                 }
 
-                case "status" => {
+                case "commit" => {
+                    call(config, IOCommit.commit)
                 }
 
-                case _ =>
+                case "status" => {
+                    call(config, IOIndex.status)
+                }
+
+                case _ => error("nul")
             }
-            case _ =>
+            case _ => error("hfjfhfdsk")
         }
     }
 }

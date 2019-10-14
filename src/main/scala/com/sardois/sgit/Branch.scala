@@ -23,8 +23,8 @@ object Branch {
         "branch"
     }
 
-    def master(): Branch = {
-        Branch("master", Commit.rootCommitSha())
+    def master: Branch = {
+        Branch("master", Commit.root.sha())
     }
 }
 
