@@ -59,9 +59,9 @@ object Main {
                     call(config, IOIndex.status)
                 }
 
-                case _ => error("nul")
+                case _ =>
             }
-            case _ => error("hfjfhfdsk")
+            case _ =>
         }
     }
 }

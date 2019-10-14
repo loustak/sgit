@@ -194,7 +194,6 @@ class RepositoryIndexSpec extends FlatSpec {
         val file = IOTest.createRandomFile(repo.parent)
         val files = List(file.pathAsString)
 
-        // First be sure to track the file inside the repo
         IOIndex.add(repo, repo.parent, Config(paths = files))
         IOTest.modifyRandomFile(file)
 
@@ -209,15 +208,16 @@ class RepositoryIndexSpec extends FlatSpec {
 
     it should "be able to list not staged deleted files" in {
         val repo = IORepositoryTest.init()
-        val file = IOTest.createRandomFile(repo.parent)
-        val files = List(file.pathAsString)
+        val file1 = IOTest.createRandomFile(repo.parent)
+        val file2 = IOTest.createRandomFile(repo.parent)
+        val files = Util.filesToPath(List(file1, file2 ))
 
         IOIndex.add(repo, repo.parent, Config(paths = files))
-        file.delete()
+        file1.delete()
 
         val indexFile = IOIndex.getIndexFile(repo)
         val index = IOIndex.read(indexFile)
-        val deletedFiles = IOIndex.getNotStagedDeletedFiles(index, files)
+        val deletedFiles = IOIndex.getNotStagedDeletedFiles(repo, index, files)
         assert(deletedFiles.size == 1)
 
         IORepositoryTest.delete(repo)
@@ -266,11 +266,12 @@ class RepositoryIndexSpec extends FlatSpec {
     it should "be able to list staged deleted files" in {
         val repo = IORepositoryTest.init()
         val file = IOTest.createRandomFile(repo.parent)
-        val files = List(file.pathAsString)
+        val files = Util.filesToPath(List(file))
 
         IOIndex.add(repo, repo.parent, Config(paths = files))
         IOCommit.commit(repo, repo.parent, Config(commitMessage =  "Test"))
-        IOIndex.remove(repo, repo.parent, Config(paths = files))
+        file.delete()
+        IOIndex.add(repo, repo.parent, Config(paths = files))
 
         val newIndex = IOIndex.getIndex(repo)
         val oldIndex = IOHead.getPointedIndex(repo)
@@ -287,6 +288,23 @@ class RepositoryIndexSpec extends FlatSpec {
         val str = IOIndex.status(repo, repo.parent, Config())
 
         assert(str.size > 0)
+
+        IORepositoryTest.delete(repo)
+    }
+
+    it should "know if a repository has not staged changes" in {
+        val repo = IORepositoryTest.init()
+        val file = IOTest.createRandomFile(repo.parent)
+        val files = Util.filesToPath(List(file))
+
+        IOIndex.add(repo, repo.parent, Config(paths = files))
+        IOCommit.commit(repo, repo.parent, Config(commitMessage = "Test"))
+        IOTest.modifyRandomFile(file)
+
+        val indexFile = IOIndex.getIndex(repo)
+        val hasChanges = IOIndex.haveNotStagedChanges(repo, indexFile, files)
+
+        assert(hasChanges)
 
         IORepositoryTest.delete(repo)
     }

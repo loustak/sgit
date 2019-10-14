@@ -140,12 +140,4 @@ object IORepository {
 
         Right(repoFolder)
     }
-
-    /* Returns true if the repository state is not equals
-     * to the index.
-     */
-    def isDirty(repoFolder: File): Boolean = {
-        // TODO: Make this function
-        true
-    }
 }

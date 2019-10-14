@@ -174,25 +174,29 @@ object IOIndex {
     }
 
     @impure
-    def getNotStagedDeletedFiles(index: Index, paths: List[String]): List[String] = {
-        val indexEntries = IndexEntry.fromPathsWithEmptySha(paths)
-        val tmpIndex = Index(indexEntries)
-        index.deleted(tmpIndex)
+    def getNotStagedDeletedFiles(repoFolder: File, index: Index, paths: List[String]): List[String] = {
+        val files = Util.pathsToFiles(paths)
+        val realFiles = files.filter( file => file.exists)
+        val indexEntries = IOIndexEntry.fromFiles(repoFolder, realFiles)
+        val newIndex = Index(indexEntries)
+        newIndex.deleted(index)
     }
 
-    @impure
     def getStagedNewFiles(newIndex: Index, oldIndex: Index): List[String] = {
         newIndex.newfiles(oldIndex)
     }
 
-    @impure
     def getStagedModifiedFiles(newIndex: Index, oldIndex: Index): List[String] = {
         newIndex.modified(oldIndex)
     }
-
-    @impure
     def getStagedDeletedFiles(newIndex: Index, oldIndex: Index): List[String] = {
         newIndex.deleted(oldIndex)
+    }
+
+    @impure
+    def haveNotStagedChanges(repoFolder: File, index: Index, paths: List[String]): Boolean = {
+        getNotStagedModifiedFiles(repoFolder, index, paths).size > 0 ||
+        getNotStagedDeletedFiles(repoFolder, index, paths).size > 0
     }
 
     @impure
@@ -244,22 +248,20 @@ object IOIndex {
         val files = Util.removeDirectories(repoFolder.parent.listRecursively.toList)
         val paths = Util.filesToPath(files)
 
-        val untrackedFiles = getUntrackedFiles(repoFolder, index, paths)
-        val notStagedModifiedFiles = getNotStagedModifiedFiles(repoFolder, index, paths)
-        val notStagedDeletedFiles = getNotStagedDeletedFiles(index, paths)
+        // Get the list of files
         val stagedNewFiles = getStagedNewFiles(index, oldIndex)
         val stagedModifiedFiles = getStagedModifiedFiles(index, oldIndex)
         val stagedDeletedFiles = getStagedDeletedFiles(index, oldIndex)
+        val notStagedModifiedFiles = getNotStagedModifiedFiles(repoFolder, index, paths)
+        val notStagedDeletedFiles = getNotStagedDeletedFiles(repoFolder, index, paths)
+        val untrackedFiles = getUntrackedFiles(repoFolder, index, paths)
 
-        val newLine = System.lineSeparator()
-
+        // Transform the list of files to strings
         val stagedNewFilesString = Util.formatList(stagedNewFiles, "added ")
         val stagedModifiedFilesString = Util.formatList(stagedModifiedFiles, "modified ")
-        val stagedDeletedFilesString = Util.formatList(stagedDeletedFiles, "removed ")
-
+        val stagedDeletedFilesString = Util.formatList(stagedDeletedFiles, "deleted ")
         val notStagedModifiedFilesString = Util.formatList(notStagedModifiedFiles, "modified ")
-        val notStagedDeletedFilesString = Util.formatList(notStagedDeletedFiles, "removed ")
-
+        val notStagedDeletedFilesString = Util.formatList(notStagedDeletedFiles, "deleted ")
         val untrackedString = Util.formatList(untrackedFiles, "untracked ")
 
         val stringList = List(
@@ -268,6 +270,7 @@ object IOIndex {
             "Not tracked files:", untrackedString
         )
 
+        val newLine = System.lineSeparator()
         Some(stringList.mkString(newLine))
     }
 }
