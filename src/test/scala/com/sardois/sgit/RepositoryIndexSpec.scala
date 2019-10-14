@@ -223,6 +223,27 @@ class RepositoryIndexSpec extends FlatSpec {
         IORepositoryTest.delete(repo)
     }
 
+    it should "be able to list staged new files" in {
+        val repo = IORepositoryTest.init()
+        val file1 = IOTest.createRandomFile(repo.parent)
+        val files = Util.filesToPath(List(file1))
+
+        IOIndex.add(repo, repo.parent, Config(paths = files))
+        IOCommit.commit(repo, repo.parent, Config(paths = files))
+
+        val file2 = IOTest.createRandomFile(repo.parent)
+        val newFiles = Util.filesToPath(List(file1, file2))
+        IOIndex.add(repo, repo.parent, Config(paths = newFiles))
+
+        val newIndex = IOIndex.getIndex(repo)
+        val oldIndex = IOHead.getPointedIndex(repo)
+        val addedFiles = IOIndex.getStatusStagedNewFiles(newIndex, oldIndex)
+
+        assert(addedFiles.size == 1)
+
+        IORepositoryTest.delete(repo)
+    }
+
     it should "be able to list staged modified files" in {
         val repo = IORepositoryTest.init()
         val file = IOTest.createRandomFile(repo.parent)

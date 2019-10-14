@@ -32,12 +32,6 @@ class Index(private val map: Map[String, String]) {
     }
 
     def remove(relativePath: String): Index = {
-        /*
-        if (!map.contains(relativePath)) {
-            throw new RuntimeException("File not in the index: " + relativePath)
-        }
-        */
-
         val newMap = map.filter( tuple => {
             val key = tuple._1
             !key.contains(relativePath)
@@ -70,7 +64,9 @@ class Index(private val map: Map[String, String]) {
     }
 
     def newfiles(otherIndex: Index): List[String] = {
-        ???
+        map.keys.filter( key => {
+            !otherIndex.map.contains(key)
+        }).toList
     }
 
     def modified(otherIndex: Index): List[String] = {
@@ -83,8 +79,8 @@ class Index(private val map: Map[String, String]) {
     }
 
     def deleted(otherIndex: Index): List[String] = {
-        map.keys.filter( key => {
-            !otherIndex.map.contains(key)
+        otherIndex.map.keys.filter( key => {
+            !map.contains(key)
         }).toList
     }
 
@@ -186,19 +182,16 @@ object IOIndex {
 
     @impure
     def getStatusStagedNewFiles(newIndex: Index, oldIndex: Index): List[String] = {
-        // oldIndex.newfiles(newIndex)
-        ???
+        newIndex.newfiles(oldIndex)
     }
 
     @impure
     def getStatusStagedModifiedFiles(newIndex: Index, oldIndex: Index): List[String] = {
-        //oldIndex.modified(newIndex)
         newIndex.modified(oldIndex)
     }
 
     @impure
     def getStatusStagedDeletedFiles(newIndex: Index, oldIndex: Index): List[String] = {
-        //oldIndex.deleted(newIndex)
         newIndex.deleted(oldIndex)
     }
 
