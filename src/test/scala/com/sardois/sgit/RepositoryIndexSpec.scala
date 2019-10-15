@@ -11,17 +11,17 @@ class RepositoryIndexSpec extends FlatSpec {
 
         IOIndex.add(repo, repo.parent, Config(paths = files))
 
-        val index = repo/Repository.getIndexPath()
+        val index = repo/Repository.indexPath
         if (!index.exists) {
             fail("The index doesn't exists")
         }
 
         val lines = index.lines().toList
-        assert(lines.size == files.size)
+        assert(lines.size == files.length)
 
         val entry = lines(0)
         val split = entry.split(" ")
-        if (split.size < 2) {
+        if (split.length < 2) {
             fail("Invalid entry in the index")
         }
 
@@ -44,7 +44,7 @@ class RepositoryIndexSpec extends FlatSpec {
         IOIndex.add(repo, repo.parent, Config(paths = files))
 
         val indexFile = IOIndex.getIndexFile(repo)
-        assert(indexFile.lines.size == files.size)
+        assert(indexFile.lines.size == files.length)
 
         IORepositoryTest.delete(repo)
     }
@@ -59,7 +59,7 @@ class RepositoryIndexSpec extends FlatSpec {
         IOIndex.add(repo, repo.parent, Config(paths = files))
 
         val indexFile = IOIndex.getIndexFile(repo)
-        assert(indexFile.lines.size == 0)
+        assert(indexFile.lines.isEmpty)
 
         IORepositoryTest.delete(repo)
     }
@@ -96,7 +96,7 @@ class RepositoryIndexSpec extends FlatSpec {
         IOIndex.add(repo, repo.parent, Config(paths = files))
 
         val indexFile = IOIndex.getIndexFile(repo)
-        assert(indexFile.lines.size == 0)
+        assert(indexFile.lines.isEmpty)
 
         IORepositoryTest.delete(repo)
     }
@@ -153,7 +153,7 @@ class RepositoryIndexSpec extends FlatSpec {
         val index = IOIndex.read(indexFile)
 
         assert(indexFile.isRegularFile)
-        assert(index.size == filesPath.size)
+        assert(index.size == filesPath.length)
 
         IORepositoryTest.delete(repo)
     }
@@ -259,7 +259,7 @@ class RepositoryIndexSpec extends FlatSpec {
         val oldIndex = IOHead.getPointedIndex(repo)
         val modifiedFiles = IOIndex.getStagedModifiedFiles(newIndex, oldIndex)
 
-        assert(modifiedFiles.size == files.size)
+        assert(modifiedFiles.size == files.length)
 
         IORepositoryTest.delete(repo)
     }
@@ -278,7 +278,7 @@ class RepositoryIndexSpec extends FlatSpec {
         val oldIndex = IOHead.getPointedIndex(repo)
         val deletedFiles = IOIndex.getStagedDeletedFiles(newIndex, oldIndex)
 
-        assert(deletedFiles.size == files.size)
+        assert(deletedFiles.size == files.length)
 
         IORepositoryTest.delete(repo)
     }
@@ -288,7 +288,7 @@ class RepositoryIndexSpec extends FlatSpec {
 
         val str = IOIndex.status(repo, repo.parent, Config())
 
-        assert(str.size > 0)
+        assert(str.isDefined)
 
         IORepositoryTest.delete(repo)
     }

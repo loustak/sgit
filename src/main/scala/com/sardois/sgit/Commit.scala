@@ -43,7 +43,7 @@ object Commit {
 object IOCommit {
 
     def getCommitsFolder(repoFolder: File): File = {
-        repoFolder/Repository.getCommitsPath()
+        repoFolder/Repository.commitsPath
     }
 
     @impure
@@ -53,7 +53,7 @@ object IOCommit {
         }
 
         val lines = commitFile.lines.toArray
-        if (lines.size != 5) {
+        if (lines.length != 5) {
             throw new RuntimeException("Commit format is invalid at " + commitFile.pathAsString)
         }
 

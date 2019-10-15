@@ -7,7 +7,7 @@ import org.scalatest._
 class BlobSpec extends FlatSpec {
 
     def createBlobsDir(folder: File): File = {
-        (folder/Repository.getBlobsPath()).createDirectories()
+        (folder/Repository.blobsPath).createDirectories()
     }
 
     "A blob" should "be writable" in {

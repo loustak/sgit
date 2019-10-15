@@ -9,13 +9,13 @@ import scala.annotation.tailrec
 
 object Test extends FlatSpec {
 
-    def getTestFolder(): File = File("test")
+    def testFolder: File = File("test")
 
     /** Return a random non existing folder */
     @tailrec
-    def getRandomFolder(): File = {
-        val file = getTestFolder()/("test-" + randomNumberString(8))
-        if (file.exists) getRandomFolder()
+    def getRandomFolder: File = {
+        val file = testFolder/("test-" + randomNumberString(8))
+        if (file.exists) getRandomFolder
         else file
     }
 
@@ -39,7 +39,7 @@ object IOTest {
 
     @impure
     def createRandomFolder(): File = {
-        Test.getRandomFolder().createDirectories()
+        Test.getRandomFolder.createDirectories()
     }
 
     /** Create a random file with a random content.

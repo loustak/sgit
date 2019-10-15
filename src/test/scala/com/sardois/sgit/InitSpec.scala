@@ -12,7 +12,7 @@ class InitSpec extends FlatSpec {
 
     it should "create an indexes folder" in {
         val repo = IORepositoryTest.init()
-        val indexFolder = repo/Repository.getIndexesPath()
+        val indexFolder = repo/Repository.indexesPath
         assert(indexFolder.exists)
         assert(indexFolder.isDirectory)
         IORepositoryTest.delete(repo)
@@ -20,7 +20,7 @@ class InitSpec extends FlatSpec {
 
     it should "create an empty index file" in {
         val repo = IORepositoryTest.init()
-        val index = repo/Repository.getIndexPath()
+        val index = repo/Repository.indexPath
         assert(index.isRegularFile)
         val lines = index.contentAsString()
         assert(lines.isEmpty)
@@ -29,7 +29,7 @@ class InitSpec extends FlatSpec {
 
     it should "create an empty objects folder" in {
         val repo = IORepositoryTest.init()
-        val blobs = repo/Repository.getBlobsPath()
+        val blobs = repo/Repository.blobsPath
         assert(blobs.isDirectory)
         assert(blobs.isEmpty)
         IORepositoryTest.delete(repo)
@@ -37,7 +37,7 @@ class InitSpec extends FlatSpec {
 
     it should "create a commits folder" in {
         val repo = IORepositoryTest.init()
-        val commits = repo/Repository.getCommitsPath()
+        val commits = repo/Repository.commitsPath
         assert(commits.exists)
         assert(commits.isDirectory)
         IORepositoryTest.delete(repo)
@@ -45,21 +45,21 @@ class InitSpec extends FlatSpec {
 
     it should "have a checkables folder" in {
         val repo = IORepositoryTest.init()
-        val checkables = repo/Repository.getCheckables()
+        val checkables = repo/Repository.checkablesPath
         assert(checkables.isDirectory())
         IORepositoryTest.delete(repo)
     }
 
     it should "have a checkables/branches folder" in {
         val repo = IORepositoryTest.init()
-        val head = repo/Repository.getBranchesPath()
+        val head = repo/Repository.branchesPath
         assert(head.isDirectory())
         IORepositoryTest.delete(repo)
     }
 
     it should "have it's master branch written" in {
         val repo = IORepositoryTest.init()
-        val heads = repo/Repository.getBranchesPath()
+        val heads = repo/Repository.branchesPath
         val masterBranch = Branch.master
         val masterFile = heads/masterBranch.name
         val rootCommit = IOHead.getPointedCommit(repo)
@@ -74,7 +74,7 @@ class InitSpec extends FlatSpec {
 
     it should "have it's head set to master in the HEAD file" in {
         val repo = IORepositoryTest.init()
-        val head = repo/Repository.getHeadPath()
+        val head = repo/Repository.headPath
         val text = head.lines().toList
         val master = Branch.master
 
@@ -86,7 +86,7 @@ class InitSpec extends FlatSpec {
         val checkableType = split(0)
         val branchName = split(1)
 
-        assert(checkableType == Branch.getType())
+        assert(checkableType == Branch.getType)
         assert(branchName == master.name)
 
         IORepositoryTest.delete(repo)
@@ -94,14 +94,14 @@ class InitSpec extends FlatSpec {
 
     it should "have a checkables/tags empty folder" in {
         val repo = IORepositoryTest.init()
-        val tags = repo/Repository.getTagsPath()
+        val tags = repo/Repository.tagsPath
         assert(tags.isDirectory)
         assert(tags.isEmpty)
         IORepositoryTest.delete(repo)
     }
 
     it should "provide an error message if trying to be init inside a nested fodler of an sgit repo" in {
-        val folder = Test.getRandomFolder()
+        val folder = Test.getRandomFolder
         IORepository.init(folder)
 
         val nestedDirs = folder/"nestedDir"/"anotherOne"
@@ -111,9 +111,7 @@ class InitSpec extends FlatSpec {
         IOTest.delete(folder)
 
         either match {
-            case Right(_) => {
-                fail("Repository was still created")
-            }
+            case Right(_) => fail("Repository was still created")
             case _ => succeed
         }
     }
@@ -121,6 +119,6 @@ class InitSpec extends FlatSpec {
     it should "be destroyable for tests" in {
         val repo = IORepositoryTest.init()
         IORepositoryTest.delete(repo)
-        assert(repo.isDirectory() == false)
+        assert(!repo.isDirectory())
     }
 }

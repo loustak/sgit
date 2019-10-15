@@ -44,11 +44,11 @@ object Parser {
         .text("Show all commits started with newest")
         .children(
           opt[Unit]('p', "patch")
-            .action((x, c) => c.copy(patch = true))
+            .action((_, c) => c.copy(patch = true))
             .text("Show changes overtime"),
 
           opt[Unit]('s', "stat")
-            .action((x, c) => c.copy(patch = true))
+            .action((_, c) => c.copy(patch = true))
             .text("Show stats about changes overtime"),
         )
 

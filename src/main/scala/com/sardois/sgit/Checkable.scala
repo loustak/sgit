@@ -7,12 +7,12 @@ trait Checkable {
     val name: String
     val commitSha: String
 
-    def getType(): String
+    def getType: String
 
-    def getPath(): String
+    def getPath: String
 
-    override def toString(): String = {
-        getType() + " " + name
+    override def toString: String = {
+        getType + " " + name
     }
 }
 
@@ -20,7 +20,7 @@ object IOCheckable {
 
     @impure
     def create(repoFolder: File, checkable: Checkable): Unit = {
-        val checkableFile = repoFolder/checkable.getPath()/checkable.name
+        val checkableFile = repoFolder/checkable.getPath/checkable.name
 
         if (checkableFile.exists) {
             throw new RuntimeException("This name is already used")

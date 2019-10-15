@@ -5,11 +5,11 @@ import better.files.File
 class Branch(val name: String, val commitSha: String) extends Checkable {
 
     def getType(): String = {
-        Branch.getType()
+        Branch.getType
     }
 
     def getPath(): String = {
-        Repository.getBranchesPath()
+        Repository.branchesPath
     }
 }
 
@@ -19,7 +19,7 @@ object Branch {
         new Branch(name, commitSha)
     }
 
-    def getType(): String = {
+    def getType: String = {
         "branch"
     }
 
@@ -31,6 +31,6 @@ object Branch {
 object IOBranch {
 
     def getBranchesFolder(repoFolder: File): File = {
-        repoFolder/Repository.getBranchesPath()
+        repoFolder/Repository.branchesPath
     }
 }

@@ -9,7 +9,7 @@ object Head {
 object IOHead {
 
     def getHeadFile(repoFolder: File): File = {
-        repoFolder/Repository.getHeadPath()
+        repoFolder/Repository.headPath
     }
 
     @impure
@@ -36,10 +36,10 @@ object IOHead {
         val checkableType = tuple._1
         val checkableName = tuple._2
 
-        if (checkableType == Branch.getType()) {
+        if (checkableType == Branch.getType) {
             val branchesFolder = IOBranch.getBranchesFolder(repoFolder)
             return branchesFolder/checkableName
-        } else if (checkableType == Tag.getType()) {
+        } else if (checkableType == Tag.getType) {
             val tagsFolder = IOTag.getTagsFolder(repoFolder)
             return tagsFolder/checkableName
         }

@@ -35,29 +35,24 @@ object Main {
         Parser().parse(args, Config()) match {
             case Some(config) => config.mode match {
 
-                case "init" => {
-                    val currentFolder = Repository.getCurrentFolder()
+                case "init" =>
+                    val currentFolder = Repository.currentFolder
                     IORepository.init(currentFolder) match {
                         case Left(value) => error(value)
                         case Right(value) =>
                     }
-                }
 
-                case "add" => {
+                case "add" =>
                     call(config, IOIndex.add)
-                }
 
-                case "rm" => {
+                case "rm" =>
                     call(config, IOIndex.remove)
-                }
 
-                case "commit" => {
+                case "commit" =>
                     call(config, IOCommit.commit)
-                }
 
-                case "status" => {
+                case "status" =>
                     call(config, IOIndex.status)
-                }
 
                 case _ =>
             }

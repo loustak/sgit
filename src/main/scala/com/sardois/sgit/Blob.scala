@@ -21,7 +21,7 @@ object Blob {
 object IOBlob {
 
     def getBlobsFolder(repoFolder: File): File = {
-        repoFolder/Repository.getBlobsPath()
+        repoFolder/Repository.blobsPath
     }
 
     @impure

@@ -4,12 +4,12 @@ import better.files.File
 
 class Tag(val name: String, val commitSha: String) extends Checkable {
 
-    def getType(): String = {
-        Tag.getType()
+    def getType: String = {
+        Tag.getType
     }
 
-    def getPath(): String = {
-        Repository.getTagsPath()
+    def getPath: String = {
+        Repository.tagsPath
     }
 }
 
@@ -19,7 +19,7 @@ object Tag {
         new Tag(name, commitSha)
     }
 
-    def getType(): String = {
+    def getType: String = {
         "tag"
     }
 }
@@ -27,6 +27,6 @@ object Tag {
 object IOTag {
 
     def getTagsFolder(repoFolder: File): File = {
-        repoFolder/Repository.getTagsPath()
+        repoFolder/Repository.tagsPath
     }
 }

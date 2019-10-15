@@ -64,13 +64,13 @@ class Index(private val map: Map[String, String]) {
     def untracked(otherIndex: Index): Iterable[String] = {
         otherIndex.map.keys.filter( key => {
             !map.contains(key)
-        }).toList
+        })
     }
 
     def newfiles(otherIndex: Index): Iterable[String] = {
         map.keys.filter( key => {
             !otherIndex.map.contains(key)
-        }).toList
+        })
     }
 
     def modified(otherIndex: Index): Iterable[String] = {
@@ -79,13 +79,13 @@ class Index(private val map: Map[String, String]) {
                 // Return true if sha changed for the same file
                 otherIndex.map(key) != map(key)
             } else false
-        }).toList
+        })
     }
 
     def deleted(otherIndex: Index): Iterable[String] = {
         otherIndex.map.keys.filter( key => {
             !map.contains(key)
-        }).toList
+        })
     }
 
     def sha(): String = {
@@ -113,11 +113,11 @@ object Index {
 object IOIndex {
 
     def getIndexesFolder(repoFolder: File): File = {
-        repoFolder/Repository.getIndexesPath()
+        repoFolder/Repository.indexesPath
     }
 
     def getIndexFile(repoFolder: File): File = {
-        repoFolder/Repository.getIndexPath()
+        repoFolder/Repository.indexPath
     }
 
     def read(indexFile: File): Index = {
@@ -200,8 +200,8 @@ object IOIndex {
 
     @impure
     def haveNotStagedChanges(repoFolder: File, index: Index, paths: Iterable[String]): Boolean = {
-        getNotStagedModifiedFiles(repoFolder, index, paths).size > 0 ||
-        getNotStagedDeletedFiles(repoFolder, index, paths).size > 0
+        getNotStagedModifiedFiles(repoFolder, index, paths).nonEmpty ||
+        getNotStagedDeletedFiles(repoFolder, index, paths).nonEmpty
     }
 
     @impure

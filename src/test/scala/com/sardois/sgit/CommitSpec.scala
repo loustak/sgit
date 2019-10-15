@@ -17,7 +17,7 @@ class CommitSpec extends FlatSpec {
         val index = IOIndex.read(indexFile)
         val indexSha = index.sha()
         val commit = Commit(message, indexSha, Commit.root.sha())
-        val newCommitFile = repo/Repository.getCommitsPath()/commit.sha()
+        val newCommitFile = repo/Repository.commitsPath/commit.sha()
 
         // The format of the commit is correct
         assert(newCommitFile.contentAsString == commit.toString)
