@@ -82,8 +82,8 @@ object IOCheckable {
         val branchesFolder = getBranchesFolder(repoFolder)
         val tagsFolder = getTagsFolder(repoFolder)
 
-        val branchesList = Repository.relativizesFile(repoFolder, list(branchesFolder))
-        val tagsList = Repository.relativizesFile(repoFolder, list(tagsFolder))
+        val branchesList = list(branchesFolder).map( f => f.name)
+        val tagsList = list(tagsFolder).map( f => f.name)
 
         val newLine = System.lineSeparator()
         val branchesString = branchesList.mkString(newLine)
