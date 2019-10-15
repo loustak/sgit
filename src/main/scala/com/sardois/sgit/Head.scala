@@ -85,4 +85,10 @@ object IOHead {
         headFile.clear()
         headFile.write(checkable.toString())
     }
+
+    @impure
+    def setToCommit(repoFolder: File, commit: Commit): Unit = {
+        val checkableHeadFile = getCheckableFile(repoFolder)
+        IOCheckable.setToSha(checkableHeadFile, commit.sha())
+    }
 }

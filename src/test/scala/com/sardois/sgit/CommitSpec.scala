@@ -55,22 +55,31 @@ class CommitSpec extends FlatSpec {
 
     it should "be checkable" in {
         val repo = IORepositoryTest.init()
-        val file = IOTest.createRandomFile(repo.parent)
-        val files = Util.filesToPath(file)
-        val message = "Test commit"
+        val file1 = IOTest.createRandomFile(repo.parent)
+        val file2 = IOTest.createRandomFile(repo.parent)
+        val files = Util.filesToPath(file1, file2)
+        val messageCommit1 = "Commit 1"
+        val messageCommit2 = "Commit 2"
 
         IOIndex.add(repo, repo.parent, Config(paths = files))
-        IOCommit.commit(repo, repo.parent, Config(commitMessage = message))
-        file.delete()
+        IOCommit.commit(repo, repo.parent, Config(commitMessage = messageCommit1))
+        file1.delete()
         IOIndex.add(repo, repo.parent, Config(paths = files))
-        IOCommit.commit(repo, repo.parent, Config(commitMessage = message))
+        IOCommit.commit(repo, repo.parent, Config(commitMessage = messageCommit2))
 
-        val headCommit = IOHead.getPointedCommit(repo)
+        val secondCommit = IOHead.getPointedCommit(repo)
         val commitsFolder = IOCommit.getCommitsFolder(repo)
-        val previousCommit = IOCommit.read(commitsFolder, headCommit.parentCommitSha)
-        IOCommit.checkout(repo, previousCommit)
+        val firstCommit = IOCommit.read(commitsFolder, secondCommit.parentCommitSha)
 
-        assert(file.exists)
+        IOCommit.checkout(repo, secondCommit)
+        assert(IOHead.getPointedCommit(repo).message == messageCommit2)
+        assert(!file1.exists)
+        assert(file2.exists)
+
+        IOCommit.checkout(repo, firstCommit)
+        assert(IOHead.getPointedCommit(repo).message == messageCommit1)
+        assert(file1.exists)
+        assert(file2.exists)
 
         IORepositoryTest.delete(repo)
     }

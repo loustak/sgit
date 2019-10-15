@@ -96,7 +96,6 @@ object IOCommit {
         val index = IOIndex.read(indexFile)
         val indexSha = index.sha()
 
-        val checkableHeadFile = IOHead.getCheckableFile(repoFolder)
         val parentCommitSha = IOHead.getPointedCommitSha(repoFolder)
         val newCommit = Commit(message, indexSha, parentCommitSha)
 
@@ -108,7 +107,7 @@ object IOCommit {
         IOIndex.write(newIndexFile, index)
 
         // Update the commit referenced by the head
-        IOCheckable.setToSha(checkableHeadFile, newCommit.sha())
+        IOHead.setToCommit(repoFolder, newCommit)
 
         None
     }
@@ -131,5 +130,12 @@ object IOCommit {
 
             blobFile.copyTo(workingDirectoryBlobFile, true)
         })
+
+        IOHead.setToCommit(repoFolder, commit)
+    }
+
+    @impure
+    def checkout(repoFolder: File, commandFolder: File, args: Config): Unit = {
+        ???
     }
 }

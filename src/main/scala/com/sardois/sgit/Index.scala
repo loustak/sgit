@@ -200,16 +200,14 @@ object IOIndex {
         newIndex.deleted(oldIndex)
     }
 
-    @impure
     def haveNotStagedChanges(repoFolder: File, index: Index, paths: Iterable[String]): Boolean = {
         getNotStagedModifiedFiles(repoFolder, index, paths).nonEmpty ||
         getNotStagedDeletedFiles(repoFolder, index, paths).nonEmpty
     }
 
-    @impure
     def throwIfNotStagedChanges(repoFolder: File, index: Index, paths: Iterable[String]): Unit = {
         if (haveNotStagedChanges(repoFolder, index, paths)) {
-            throw new RuntimeException("You have unstaged changes, please first commit your changes")
+            throw new RuntimeException("You have not staged changes, please first commit your changes.")
         }
     }
 
@@ -297,8 +295,7 @@ object IOIndex {
         index.getMap.foreach( tuple => {
             val path = tuple._1
             val file = repoFolder.parent/path
-            println(file.pathAsString)
-            // file.delete()
+            file.delete()
         })
     }
 }
