@@ -56,13 +56,13 @@ object Repository {
         path.replace(repoFolder.parent.pathAsString, "")
     }
 
-    def relativizesPath(repoFolder: File, paths: List[String]): List[String] = {
+    def relativizesPath(repoFolder: File, paths: Iterable[String]): Iterable[String] = {
         paths.map( path => {
             relativize(repoFolder, path)
         })
     }
 
-    def relativizesFile(repoFolder: File, files: List[File]): List[String] = {
+    def relativizesFile(repoFolder: File, files: Iterable[File]): Iterable[String] = {
         files.map( file => {
             relativize(repoFolder, file)
         })
@@ -73,7 +73,7 @@ object Repository {
      * Doesn't return files and folders inside the the .sgit directory
      * nor the repository parent directory.
      * */
-    def list(repoFolder: File): List[File] = {
+    def list(repoFolder: File): Iterable[File] = {
         repoFolder.parent.list( (file) => {
             !(file.isChildOf(repoFolder) || file == repoFolder.parent || file == repoFolder)
         }).toList

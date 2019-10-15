@@ -3,7 +3,7 @@ package com.sardois.sgit
 case class Config(
     mode: String = "",
     commitMessage: String = "",
-    paths: List[String] = Nil,
+    paths: Array[String] = Array(),
     patch: Boolean = false,
     stat: Boolean = false,
     tagName: String = "",

@@ -7,9 +7,10 @@ class CommitSpec extends FlatSpec {
     "A commit" should "be doable" in {
         val repo = IORepositoryTest.init()
         val file = IOTest.createRandomFile(repo.parent)
+        val files = Util.filesToPath(file)
         val message = "Test commit"
 
-        IOIndex.add(repo, repo.parent, Config(paths = List(file.pathAsString)))
+        IOIndex.add(repo, repo.parent, Config(paths = files))
         IOCommit.commit(repo, repo.parent, Config(commitMessage = message))
 
         val indexFile = IOIndex.getIndexFile(repo)
@@ -36,9 +37,10 @@ class CommitSpec extends FlatSpec {
     it should "be readable" in {
         val repo = IORepositoryTest.init()
         val file = IOTest.createRandomFile(repo.parent)
+        val files = Util.filesToPath(file)
         val message = "Test commit"
 
-        IOIndex.add(repo, repo.parent, Config(paths = List(file.pathAsString)))
+        IOIndex.add(repo, repo.parent, Config(paths = files))
         IOCommit.commit(repo, repo.parent, Config(commitMessage = message))
 
         val commitsFolder = IOCommit.getCommitsFolder(repo)

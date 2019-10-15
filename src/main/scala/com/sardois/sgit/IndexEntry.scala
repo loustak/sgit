@@ -16,7 +16,7 @@ object IndexEntry {
         new IndexEntry(file._1, file._2)
     }
 
-    def apply(files: List[(String, String)]): List[IndexEntry] = {
+    def apply(files: Iterable[(String, String)]): Iterable[IndexEntry] = {
         files.map( file => {
             IndexEntry(file)
         })
@@ -26,7 +26,7 @@ object IndexEntry {
      * any files nor performs IO operations, this function is useful
      * to create index entries which have been deleted.
      */
-    def fromPathsWithEmptySha(paths: List[String]): List[IndexEntry] = {
+    def fromPathsWithEmptySha(paths: Iterable[String]): Iterable[IndexEntry] = {
         paths.map( path => {
             IndexEntry(path, "")
         })
@@ -36,7 +36,7 @@ object IndexEntry {
 // Create index entries with forced relative path
 object IOIndexEntry {
 
-    def fromFiles(repoFolder: File, files: List[File]): List[IndexEntry] = {
+    def fromFiles(repoFolder: File, files: Iterable[File]): Iterable[IndexEntry] = {
         files.map( file => {
             val relativePath = Repository.relativize(repoFolder, file)
             val sha = Util.shaFile(file)
@@ -44,7 +44,7 @@ object IOIndexEntry {
         })
     }
 
-    def fromPaths(repoFolder: File, paths: List[String]): List[IndexEntry] = {
+    def fromPaths(repoFolder: File, paths: Iterable[String]): Iterable[IndexEntry] = {
         val files = paths.map( path => File(path))
         fromFiles(repoFolder, files)
     }

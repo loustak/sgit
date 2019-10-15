@@ -18,13 +18,15 @@ class Index(private val map: Map[String, String]) {
         add(path, sha)
     }
 
-    def addAll(indexEntries: List[IndexEntry]): Index = {
+    def addAll(indexEntries: Iterable[IndexEntry]): Index = {
 
         @tailrec
-        def rec(indexEntries: List[IndexEntry], index: Index): Index = {
-            indexEntries match {
-                case ::(head, next) => rec(next, index.add(head))
-                case Nil => index
+        def rec(indexEntries: Iterable[IndexEntry], index: Index): Index = {
+            if (indexEntries.isEmpty) index
+            else {
+                val head = indexEntries.head
+                val tail = indexEntries.tail
+                rec(tail, index.add(head))
             }
         }
 
@@ -44,32 +46,34 @@ class Index(private val map: Map[String, String]) {
         remove(indexEntry.relativePath)
     }
 
-    def removeAll(indexEntries: List[IndexEntry]): Index = {
+    def removeAll(indexEntries: Iterable[IndexEntry]): Index = {
 
         @tailrec
-        def rec(indexEntries: List[IndexEntry], index: Index): Index = {
-            indexEntries match {
-                case ::(head, next) => rec(next, index.remove(head))
-                case Nil => index
+        def rec(indexEntries: Iterable[IndexEntry], index: Index): Index = {
+            if (indexEntries.isEmpty) index
+            else {
+                val head = indexEntries.head
+                val tail = indexEntries.tail
+                rec(tail, index.remove(head))
             }
         }
 
         rec(indexEntries, this)
     }
 
-    def untracked(otherIndex: Index): List[String] = {
+    def untracked(otherIndex: Index): Iterable[String] = {
         otherIndex.map.keys.filter( key => {
             !map.contains(key)
         }).toList
     }
 
-    def newfiles(otherIndex: Index): List[String] = {
+    def newfiles(otherIndex: Index): Iterable[String] = {
         map.keys.filter( key => {
             !otherIndex.map.contains(key)
         }).toList
     }
 
-    def modified(otherIndex: Index): List[String] = {
+    def modified(otherIndex: Index): Iterable[String] = {
         otherIndex.map.keys.filter( key => {
             if (map.contains(key)) {
                 // Return true if sha changed for the same file
@@ -78,7 +82,7 @@ class Index(private val map: Map[String, String]) {
         }).toList
     }
 
-    def deleted(otherIndex: Index): List[String] = {
+    def deleted(otherIndex: Index): Iterable[String] = {
         otherIndex.map.keys.filter( key => {
             !map.contains(key)
         }).toList
@@ -101,7 +105,7 @@ object Index {
         new Index(map)
     }
 
-    def apply(indexEntries: List[IndexEntry]): Index = {
+    def apply(indexEntries: Iterable[IndexEntry]): Index = {
         Index().addAll(indexEntries)
     }
 }
@@ -124,7 +128,7 @@ object IOIndex {
         val lines = indexFile.lines().toList
 
         @tailrec
-        def rec(lines: List[String], index: Index): Index = {
+        def rec(lines: Iterable[String], index: Index): Index = {
             if (lines == Nil) return index
             val split = lines.head.split(" ")
             if (split.length < 2) {
@@ -160,21 +164,21 @@ object IOIndex {
     }
 
     @impure
-    def getUntrackedFiles(repoFolder: File, index: Index, paths: List[String]): List[String] = {
+    def getUntrackedFiles(repoFolder: File, index: Index, paths: Iterable[String]): Iterable[String] = {
         val indexEntries = IOIndexEntry.fromPaths(repoFolder, paths)
         val tmpIndex = Index(indexEntries)
         index.untracked(tmpIndex)
     }
 
     @impure
-    def getNotStagedModifiedFiles(repoFolder: File, index: Index, paths: List[String]): List[String] = {
+    def getNotStagedModifiedFiles(repoFolder: File, index: Index, paths: Iterable[String]): Iterable[String] = {
         val indexEntries = IOIndexEntry.fromPaths(repoFolder, paths)
         val tmpIndex = Index(indexEntries)
         index.modified(tmpIndex)
     }
 
     @impure
-    def getNotStagedDeletedFiles(repoFolder: File, index: Index, paths: List[String]): List[String] = {
+    def getNotStagedDeletedFiles(repoFolder: File, index: Index, paths: Iterable[String]): Iterable[String] = {
         val files = Util.pathsToFiles(paths)
         val realFiles = files.filter( file => file.exists)
         val indexEntries = IOIndexEntry.fromFiles(repoFolder, realFiles)
@@ -182,21 +186,29 @@ object IOIndex {
         newIndex.deleted(index)
     }
 
-    def getStagedNewFiles(newIndex: Index, oldIndex: Index): List[String] = {
+    def getStagedNewFiles(newIndex: Index, oldIndex: Index): Iterable[String] = {
         newIndex.newfiles(oldIndex)
     }
 
-    def getStagedModifiedFiles(newIndex: Index, oldIndex: Index): List[String] = {
+    def getStagedModifiedFiles(newIndex: Index, oldIndex: Index): Iterable[String] = {
         newIndex.modified(oldIndex)
     }
-    def getStagedDeletedFiles(newIndex: Index, oldIndex: Index): List[String] = {
+
+    def getStagedDeletedFiles(newIndex: Index, oldIndex: Index): Iterable[String] = {
         newIndex.deleted(oldIndex)
     }
 
     @impure
-    def haveNotStagedChanges(repoFolder: File, index: Index, paths: List[String]): Boolean = {
+    def haveNotStagedChanges(repoFolder: File, index: Index, paths: Iterable[String]): Boolean = {
         getNotStagedModifiedFiles(repoFolder, index, paths).size > 0 ||
         getNotStagedDeletedFiles(repoFolder, index, paths).size > 0
+    }
+
+    @impure
+    def throwIfNotStagedChanges(repoFolder: File, index: Index, paths: Iterable[String]): Unit = {
+        if (haveNotStagedChanges(repoFolder, index, paths)) {
+            throw new RuntimeException("You have unstaged changes, please first commit your changes")
+        }
     }
 
     @impure

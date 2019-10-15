@@ -22,32 +22,36 @@ object Util {
             .map("%02x".format(_)).mkString
     }
 
-    def pathsToFiles(paths: List[String]): List[File] = {
+    def pathsToFiles(paths: Iterable[String]): Iterable[File] = {
         paths.map( path => File(path))
     }
 
-    def filesToPath(files: List[File]): List[String] = {
+    def filesToPath(files: Iterable[File]): Iterable[String] = {
         files.map( file => file.pathAsString)
     }
 
-    def getNestedFiles(files: List[File]): List[File] = {
+    def filesToPath(files: File *): Array[String] = {
+        files.map( file => file.pathAsString).toArray
+    }
+
+    def getNestedFiles(files: Iterable[File]): Iterable[File] = {
         files.flatMap( file => {
             if (file.isDirectory) file.listRecursively
             else List(file)
         })
     }
 
-    def removeDirectories(files: List[File]): List[File] = {
+    def removeDirectories(files: Iterable[File]): Iterable[File] = {
         files.filter( file => !file.isDirectory)
     }
 
-    def pathsToUsableFiles(paths: List[String]): List[File] = {
+    def pathsToUsableFiles(paths: Iterable[String]): Iterable[File] = {
         val files = pathsToFiles(paths)
         val nestedFiles = getNestedFiles(files)
         removeDirectories(nestedFiles)
     }
 
-    def formatList(list: List[String], symbol: String): String = {
+    def formatList(list: Iterable[String], symbol: String): String = {
         list.map( elem => {
             symbol + elem.toString
         }).mkString(System.lineSeparator())

@@ -7,7 +7,7 @@ import scala.annotation.tailrec
 object Blob {
 
     @tailrec
-    def shaExists(files: List[File], sha: String): Boolean = {
+    def shaExists(files: Iterable[File], sha: String): Boolean = {
         if (files == Nil) false
         else {
             val file = files.head
@@ -40,7 +40,7 @@ object IOBlob {
 
     @tailrec
     @impure
-    def writeAll(blobsFolder: File, files: List[File]): Unit = {
+    def writeAll(blobsFolder: File, files: Iterable[File]): Unit = {
         if (files == Nil) return
         val file = files.head
         write(blobsFolder, file)
