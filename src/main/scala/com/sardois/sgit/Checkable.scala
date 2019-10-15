@@ -78,6 +78,26 @@ object IOCheckable {
     }
 
     @impure
+    def list(repoFolder: File, commandFolder: File, args: Config): Option[String] = {
+        val branchesFolder = getBranchesFolder(repoFolder)
+        val tagsFolder = getTagsFolder(repoFolder)
+
+        val branchesList = Repository.relativizesFile(repoFolder, list(branchesFolder))
+        val tagsList = Repository.relativizesFile(repoFolder, list(tagsFolder))
+
+        val newLine = System.lineSeparator()
+        val branchesString = branchesList.mkString(newLine)
+        val tagsString = tagsList.mkString(newLine)
+
+        val listString = List(
+            "Branches:", branchesString,
+            "Tags:", tagsString
+        )
+
+        Some(listString.mkString(newLine))
+    }
+
+    @impure
     def create(repoFolder: File, checkable: Checkable): Unit = {
         val checkableFile = getCheckableFile(repoFolder, checkable)
 
@@ -95,10 +115,10 @@ object IOCheckable {
 
         val commitSha = IOHead.getPointedCommit(repoFolder).sha
 
-        if (branchName != "") {
+        if (!branchName.isEmpty) {
             val newBranch = Branch(branchName, commitSha)
             create(repoFolder, newBranch)
-        } else {
+        } else if (!tagName.isEmpty) {
             val newTag = Tag(tagName, commitSha)
             create(repoFolder, newTag)
         }

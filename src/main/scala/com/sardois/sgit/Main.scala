@@ -45,7 +45,12 @@ object Main {
                 case "add" => call(config, IOIndex.add)
                 case "commit" => call(config, IOCommit.commit)
                 case "status" => call(config, IOIndex.status)
-                case "branch" => call(config, IOCheckable.create)
+                case "branch" => {
+                    config.list match {
+                        case true => call(config, IOCheckable.list)
+                        case false => call(config, IOCheckable.create)
+                    }
+                }
                 case "tag" => call(config, IOCheckable.create)
 
                 case _ =>

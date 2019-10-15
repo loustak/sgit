@@ -17,7 +17,7 @@ class CheckableSpec extends FlatSpec {
         IORepositoryTest.delete(repo)
     }
 
-    it should "be able to be listed" in {
+    it should "be able to list branches" in {
         val repo = IORepositoryTest.init()
         val names = List("branch1", "branch2")
 
@@ -28,6 +28,20 @@ class CheckableSpec extends FlatSpec {
         val branchesFolder = IOCheckable.getBranchesFolder(repo)
         val branches = IOCheckable.list(branchesFolder)
         assert(branches.size == names.size + 1)
+
+        IORepositoryTest.delete(repo)
+    }
+
+    it should "be able to create a tag" in {
+        val repo = IORepositoryTest.init()
+        val tagName = "Test"
+
+        IOCheckable.create(repo, repo.parent, Config(tagName = tagName))
+
+        val tagsFolder = IOCheckable.getTagsFolder(repo)
+        val tags = IOCheckable.list(tagsFolder)
+
+        assert(tags.size == 1)
 
         IORepositoryTest.delete(repo)
     }
