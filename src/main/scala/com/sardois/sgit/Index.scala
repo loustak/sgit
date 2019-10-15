@@ -6,6 +6,8 @@ import scala.annotation.tailrec
 
 class Index(private val map: Map[String, String]) {
 
+    def getMap: Map[String, String] = map
+
     def size: Int = map.size
 
     def add(path: String, sha: String): Index = {
@@ -284,5 +286,19 @@ object IOIndex {
 
         val newLine = System.lineSeparator()
         Some(stringList.mkString(newLine))
+    }
+
+    @impure
+    def clean(repoFolder: File, index: Index): Unit = {
+        val files = Repository.list(repoFolder)
+        val paths = Util.filesToPath(files)
+        throwIfNotStagedChanges(repoFolder, index, paths)
+
+        index.getMap.foreach( tuple => {
+            val path = tuple._1
+            val file = repoFolder.parent/path
+            println(file.pathAsString)
+            // file.delete()
+        })
     }
 }

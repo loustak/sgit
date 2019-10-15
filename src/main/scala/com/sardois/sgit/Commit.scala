@@ -112,4 +112,24 @@ object IOCommit {
 
         None
     }
+
+    @impure
+    def checkout(repoFolder: File, commit: Commit): Unit = {
+        val headIndex = IOHead.getPointedIndex(repoFolder)
+        IOIndex.clean(repoFolder, headIndex)
+
+        val indexFolder = IOIndex.getIndexesFolder(repoFolder)
+        val index = IOIndex.read(indexFolder, commit.indexSha)
+        val map = index.getMap
+
+        map.foreach( tuple => {
+            val workingDirectoryBlobPath = tuple._1
+            val blobSha = tuple._2
+
+            val blobFile = IOBlob.getBlobFile(repoFolder, blobSha)
+            val workingDirectoryBlobFile = repoFolder.parent/workingDirectoryBlobPath
+
+            blobFile.copyTo(workingDirectoryBlobFile, true)
+        })
+    }
 }

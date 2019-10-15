@@ -52,4 +52,26 @@ class CommitSpec extends FlatSpec {
 
         IORepositoryTest.delete(repo)
     }
+
+    it should "be checkable" in {
+        val repo = IORepositoryTest.init()
+        val file = IOTest.createRandomFile(repo.parent)
+        val files = Util.filesToPath(file)
+        val message = "Test commit"
+
+        IOIndex.add(repo, repo.parent, Config(paths = files))
+        IOCommit.commit(repo, repo.parent, Config(commitMessage = message))
+        file.delete()
+        IOIndex.add(repo, repo.parent, Config(paths = files))
+        IOCommit.commit(repo, repo.parent, Config(commitMessage = message))
+
+        val headCommit = IOHead.getPointedCommit(repo)
+        val commitsFolder = IOCommit.getCommitsFolder(repo)
+        val previousCommit = IOCommit.read(commitsFolder, headCommit.parentCommitSha)
+        IOCommit.checkout(repo, previousCommit)
+
+        assert(file.exists)
+
+        IORepositoryTest.delete(repo)
+    }
 }

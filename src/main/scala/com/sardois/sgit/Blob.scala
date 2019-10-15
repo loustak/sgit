@@ -24,6 +24,10 @@ object IOBlob {
         repoFolder/Repository.blobsPath
     }
 
+    def getBlobFile(repoFolder: File, blobSha: String): File = {
+        getBlobsFolder(repoFolder)/blobSha
+    }
+
     @impure
     def write(blobsFolder: File, file: File): Unit = {
         val sha = Util.shaFile(file)
