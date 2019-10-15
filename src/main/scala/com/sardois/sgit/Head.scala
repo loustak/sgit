@@ -2,10 +2,6 @@ package com.sardois.sgit
 
 import better.files._
 
-object Head {
-
-}
-
 object IOHead {
 
     def getHeadFile(repoFolder: File): File = {
@@ -36,15 +32,15 @@ object IOHead {
         val checkableType = tuple._1
         val checkableName = tuple._2
 
-        if (checkableType == Branch.getType) {
-            val branchesFolder = IOBranch.getBranchesFolder(repoFolder)
+        if (checkableType == CheckableType.BRANCH.toString) {
+            val branchesFolder = IOCheckable.getBranchesFolder(repoFolder)
             return branchesFolder/checkableName
-        } else if (checkableType == Tag.getType) {
-            val tagsFolder = IOTag.getTagsFolder(repoFolder)
+        } else if (checkableType == CheckableType.TAG.toString) {
+            val tagsFolder = IOCheckable.getTagsFolder(repoFolder)
             return tagsFolder/checkableName
         }
 
-        throw new RuntimeException("HEAD as unknown checkable type")
+        throw new RuntimeException("The head as an unknown checkable type")
     }
 
     @impure
@@ -70,7 +66,7 @@ object IOHead {
     def getPointedIndex(repoFolder: File): Index = {
         val commit = getPointedCommit(repoFolder)
 
-        if (commit.sha() == Commit.root.sha()) {
+        if (commit.sha == Commit.root.sha) {
             return Index()
         }
 
@@ -89,6 +85,6 @@ object IOHead {
     @impure
     def setToCommit(repoFolder: File, commit: Commit): Unit = {
         val checkableHeadFile = getCheckableFile(repoFolder)
-        IOCheckable.setToSha(checkableHeadFile, commit.sha())
+        IOCheckable.setToSha(checkableHeadFile, commit.sha)
     }
 }

@@ -11,6 +11,7 @@ case class Config(
     showBranch: Boolean = false,
     branchName: String = "",
     branchOrCommit: String = "",
+    branchTagOrCommit: String = "",
     showTag: Boolean = false,
     interactive: Boolean = false
 )

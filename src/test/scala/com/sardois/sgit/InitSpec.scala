@@ -67,7 +67,7 @@ class InitSpec extends FlatSpec {
         // Check that the branch file exists, and
         // the pointed commit is the root commit.
         assert(masterFile.isRegularFile)
-        assert(masterFile.contentAsString == rootCommit.sha())
+        assert(masterFile.contentAsString == rootCommit.sha)
 
         IORepositoryTest.delete(repo)
     }
@@ -86,7 +86,7 @@ class InitSpec extends FlatSpec {
         val checkableType = split(0)
         val branchName = split(1)
 
-        assert(checkableType == Branch.getType)
+        assert(checkableType == CheckableType.BRANCH.toString)
         assert(branchName == master.name)
 
         IORepositoryTest.delete(repo)

@@ -42,17 +42,11 @@ object Main {
                         case Right(value) =>
                     }
 
-                case "add" =>
-                    call(config, IOIndex.add)
-
-                case "rm" =>
-                    call(config, IOIndex.remove)
-
-                case "commit" =>
-                    call(config, IOCommit.commit)
-
-                case "status" =>
-                    call(config, IOIndex.status)
+                case "add" => call(config, IOIndex.add)
+                case "commit" => call(config, IOCommit.commit)
+                case "status" => call(config, IOIndex.status)
+                case "branch" => call(config, IOCheckable.create)
+                case "tag" => call(config, IOCheckable.create)
 
                 case _ =>
             }

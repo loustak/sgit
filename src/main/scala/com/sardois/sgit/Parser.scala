@@ -63,7 +63,7 @@ object Parser {
         )
 
       cmd(name = "branch")
-        .action((_, c) => c.copy(mode = "branch", showBranch = true))
+        .action((_, c) => c.copy(mode = "branch"))
         .text("Create a new branch")
         .children(
           arg[String](name = "<branch name>")
@@ -83,9 +83,9 @@ object Parser {
         .action((_, c) => c.copy(mode = "checkout"))
         .text("move the HEAD to the branch, tag or commit hash")
         .children(
-          arg[String](name = "<branch or tag or commit hash>")
-            .action((x, c) => c.copy(branchOrCommit = x))
-            .text("branch or tag or commit hash")
+          arg[String](name = "<branch, tag or commit hash>")
+            .action((x, c) => c.copy(branchTagOrCommit = x))
+            .text("branch, tag or commit hash")
             .required()
         )
 

@@ -12,7 +12,7 @@ class Commit(
     val date: String
         ) {
 
-    def sha(): String = {
+    def sha: String = {
         Util.shaString(toString)
     }
 
@@ -68,7 +68,7 @@ object IOCommit {
 
     @impure
     def read(commitFolder: File, commitSha: String): Commit = {
-        if (commitSha == Commit.root.sha()) {
+        if (commitSha == Commit.root.sha) {
             return Commit.root
         }
 
@@ -78,7 +78,7 @@ object IOCommit {
 
     @impure
     def write(commitFolder: File, commit: Commit): Unit = {
-        val commitSha = commit.sha()
+        val commitSha = commit.sha
         val commitFile = commitFolder/commitSha
         if (commitFile.exists) {
             throw new RuntimeException("Commit sha already exists")

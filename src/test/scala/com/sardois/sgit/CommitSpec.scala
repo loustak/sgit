@@ -16,8 +16,8 @@ class CommitSpec extends FlatSpec {
         val indexFile = IOIndex.getIndexFile(repo)
         val index = IOIndex.read(indexFile)
         val indexSha = index.sha()
-        val commit = Commit(message, indexSha, Commit.root.sha())
-        val newCommitFile = repo/Repository.commitsPath/commit.sha()
+        val commit = Commit(message, indexSha, Commit.root.sha)
+        val newCommitFile = repo/Repository.commitsPath/commit.sha
 
         // The format of the commit is correct
         assert(newCommitFile.contentAsString == commit.toString)
@@ -29,7 +29,7 @@ class CommitSpec extends FlatSpec {
 
         // The commit sha referenced by the HEAD was updated
         val newCommitSha = IOHead.getPointedCommitSha(repo)
-        assert(newCommitSha == commit.sha())
+        assert(newCommitSha == commit.sha)
 
         IORepositoryTest.delete(repo)
     }
@@ -48,7 +48,7 @@ class CommitSpec extends FlatSpec {
         val commit = IOCommit.read(commitsFolder, commitSha)
 
         assert(commit.message == message)
-        assert(commit.sha() == commitSha)
+        assert(commit.sha == commitSha)
 
         IORepositoryTest.delete(repo)
     }
