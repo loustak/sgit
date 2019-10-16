@@ -15,7 +15,7 @@ class RepositorySpec extends FlatSpec {
         IORepositoryTest.delete(repo)
     }
 
-    it should "be able to list all it's files except the one in the .sgit folder" in {
+    it should "be able to list all it's files except the one in the repository folder" in {
         val repo = IORepositoryTest.init()
 
         val nested = (repo.parent/"nested").createDirectories()
@@ -24,7 +24,7 @@ class RepositorySpec extends FlatSpec {
 
         val listedFiles = Repository.list(repo)
         /** Includes all the files and directories except: . (current folder) and .sgit */
-        assert(listedFiles.size == files.size)
+        assert(listedFiles.size == 0)
 
         IORepositoryTest.delete(repo)
     }

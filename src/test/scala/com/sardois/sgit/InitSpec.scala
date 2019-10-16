@@ -62,7 +62,7 @@ class InitSpec extends FlatSpec {
         val heads = repo/Repository.branchesPath
         val masterBranch = Branch.master
         val masterFile = heads/masterBranch.name
-        val rootCommit = IOHead.getPointedCommit(repo)
+        val rootCommit = IOHead.getPreviousCommit(repo)
 
         // Check that the branch file exists, and
         // the pointed commit is the root commit.

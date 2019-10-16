@@ -67,6 +67,10 @@ object Repository {
         })
     }
 
+    def isARepositoryFile(repoFolder: File, file: File): Boolean = {
+        file.isChildOf(repoFolder) || file == repoFolder
+    }
+
     /** List recursively all the files and folders inside
      * the parent folder of the repository.
      * Doesn't return files and folders inside the the .sgit directory
@@ -74,7 +78,7 @@ object Repository {
      * */
     def list(repoFolder: File): Iterable[File] = {
         repoFolder.parent.list( file => {
-            !(file.isChildOf(repoFolder) || file == repoFolder.parent || file == repoFolder)
+            !(file.isDirectory || isARepositoryFile(repoFolder, file))
         }).toList
     }
 

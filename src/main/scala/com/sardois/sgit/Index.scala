@@ -200,14 +200,17 @@ object IOIndex {
         newIndex.deleted(oldIndex)
     }
 
-    def haveNotStagedChanges(repoFolder: File, index: Index, paths: Iterable[String]): Boolean = {
-        getNotStagedModifiedFiles(repoFolder, index, paths).nonEmpty ||
-        getNotStagedDeletedFiles(repoFolder, index, paths).nonEmpty
+    def haveUncommitedChanges(repoFolder: File, newIndex: Index, oldIndex: Index, paths: Iterable[String]): Boolean = {
+        getStagedNewFiles(newIndex, oldIndex).nonEmpty ||
+        getStagedModifiedFiles(newIndex, oldIndex).nonEmpty ||
+        getStagedDeletedFiles(newIndex, oldIndex).nonEmpty ||
+        getNotStagedModifiedFiles(repoFolder, newIndex, paths).nonEmpty ||
+        getNotStagedDeletedFiles(repoFolder, newIndex, paths).nonEmpty
     }
 
-    def throwIfNotStagedChanges(repoFolder: File, index: Index, paths: Iterable[String]): Unit = {
-        if (haveNotStagedChanges(repoFolder, index, paths)) {
-            throw new RuntimeException("You have not staged changes, please first commit your changes.")
+    def throwIfUncommitedChanges(repoFolder: File, newIndex: Index, oldIndex: Index, paths: Iterable[String]): Unit = {
+        if (haveUncommitedChanges(repoFolder, newIndex, oldIndex, paths)) {
+            throw new RuntimeException("You have uncommited changes, please first commit your changes.")
         }
     }
 
@@ -219,7 +222,8 @@ object IOIndex {
 
         // Split files in two, the one to try to add
         // and the one that must be deleted
-        val files = Util.pathsToFiles(args.paths)
+        val paths = args.paths
+        val files = Util.pathsToFiles(paths).filter( file => !Repository.isARepositoryFile(repoFolder, file))
         val filesToAdd  = files.filter( file => file.exists)
 
         val filesToAddCleaned = Util.removeDirectories(Util.getNestedFiles(filesToAdd))
@@ -255,9 +259,9 @@ object IOIndex {
     @impure
     def status(repoFolder: File, commandFolder: File, args: Config): Option[String] = {
         val index = IOIndex.getIndex(repoFolder)
-        val oldIndex = IOHead.getPointedIndex(repoFolder)
+        val oldIndex = IOHead.getOldIndex(repoFolder)
 
-        val files = Util.removeDirectories(repoFolder.parent.listRecursively.toList)
+        val files = Repository.list(repoFolder)
         val paths = Util.filesToPath(files)
 
         // Get the list of files
@@ -287,12 +291,12 @@ object IOIndex {
     }
 
     @impure
-    def clean(repoFolder: File, index: Index): Unit = {
+    def clean(repoFolder: File, newIndex: Index, oldIndex: Index): Unit = {
         val files = Repository.list(repoFolder)
         val paths = Util.filesToPath(files)
-        throwIfNotStagedChanges(repoFolder, index, paths)
+        throwIfUncommitedChanges(repoFolder, newIndex, oldIndex, paths)
 
-        index.getMap.foreach( tuple => {
+        newIndex.getMap.foreach( tuple => {
             val path = tuple._1
             val file = repoFolder.parent/path
             file.delete()

@@ -56,15 +56,15 @@ object IOHead {
     }
 
     @impure
-    def getPointedCommit(repoFolder: File): Commit = {
+    def getPreviousCommit(repoFolder: File): Commit = {
         val commitFolder = IOCommit.getCommitsFolder(repoFolder)
         val commitSha = getPointedCommitSha(repoFolder)
         IOCommit.read(commitFolder, commitSha)
     }
 
     @impure
-    def getPointedIndex(repoFolder: File): Index = {
-        val commit = getPointedCommit(repoFolder)
+    def getOldIndex(repoFolder: File): Index = {
+        val commit = getPreviousCommit(repoFolder)
 
         if (commit.sha == Commit.root.sha) {
             return Index()

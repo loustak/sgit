@@ -29,6 +29,7 @@ object Commit {
          indexSha: String,
          parentCommitSha: String,
          author: String = "Anonymous",
+         // TODO: format the string correctly to include time
          date: String = LocalDate.now.toString
              ): Commit = {
 
@@ -114,12 +115,14 @@ object IOCommit {
 
     @impure
     def checkout(repoFolder: File, commit: Commit): Unit = {
-        val headIndex = IOHead.getPointedIndex(repoFolder)
-        IOIndex.clean(repoFolder, headIndex)
+        val indexFile = IOIndex.getIndexFile(repoFolder)
+        val newIndex = IOIndex.getIndex(repoFolder)
+        val oldIndex = IOHead.getOldIndex(repoFolder)
+        IOIndex.clean(repoFolder, newIndex, oldIndex)
 
         val indexFolder = IOIndex.getIndexesFolder(repoFolder)
-        val index = IOIndex.read(indexFolder, commit.indexSha)
-        val map = index.getMap
+        val commitIndex = IOIndex.read(indexFolder, commit.indexSha)
+        val map = commitIndex.getMap
 
         map.foreach( tuple => {
             val workingDirectoryBlobPath = tuple._1
@@ -131,11 +134,15 @@ object IOCommit {
             blobFile.copyTo(workingDirectoryBlobFile, true)
         })
 
+        IOIndex.write(indexFile, commitIndex)
         IOHead.setToCommit(repoFolder, commit)
     }
 
     @impure
-    def checkout(repoFolder: File, commandFolder: File, args: Config): Unit = {
-        ???
+    def checkout(repoFolder: File, commandFolder: File, args: Config): Option[String] = {
+        val checkableName = args.branchTagOrCommit
+        val commitToCheckout = IOCheckable.find(repoFolder, checkableName)
+        checkout(repoFolder, commitToCheckout)
+        None
     }
 }

@@ -67,17 +67,17 @@ class CommitSpec extends FlatSpec {
         IOIndex.add(repo, repo.parent, Config(paths = files))
         IOCommit.commit(repo, repo.parent, Config(commitMessage = messageCommit2))
 
-        val secondCommit = IOHead.getPointedCommit(repo)
+        val secondCommit = IOHead.getPreviousCommit(repo)
         val commitsFolder = IOCommit.getCommitsFolder(repo)
         val firstCommit = IOCommit.read(commitsFolder, secondCommit.parentCommitSha)
 
         IOCommit.checkout(repo, secondCommit)
-        assert(IOHead.getPointedCommit(repo).message == messageCommit2)
+        assert(IOHead.getPreviousCommit(repo).message == messageCommit2)
         assert(!file1.exists)
         assert(file2.exists)
 
         IOCommit.checkout(repo, firstCommit)
-        assert(IOHead.getPointedCommit(repo).message == messageCommit1)
+        assert(IOHead.getPreviousCommit(repo).message == messageCommit1)
         assert(file1.exists)
         assert(file2.exists)
 

@@ -98,6 +98,41 @@ object IOCheckable {
     }
 
     @impure
+    def find(repoFolder: File, name: String): Commit = {
+        val commitsFolder = IOCommit.getCommitsFolder(repoFolder)
+
+        val checkableFolders = Iterable(
+            getBranchesFolder(repoFolder),
+            getTagsFolder(repoFolder)
+        )
+
+        checkableFolders.foreach( checkableFolder => {
+            val checkables = checkableFolder.list
+            val checkableMatched = checkables.filter( file => {
+                file.name == name
+            }).toList
+
+            if (checkableMatched.length == 1) {
+                val commitSha = checkableMatched(0).contentAsString
+                return IOCommit.read(commitsFolder, commitSha)
+            }
+        })
+
+        val commits = commitsFolder.list
+        val matchedCommits = commits.filter( file => {
+            file.name.contains(name)
+        }).toList
+
+        if (matchedCommits.length == 1) {
+            return IOCommit.read(commitsFolder, matchedCommits(0).name)
+        } else if (matchedCommits.length > 1) {
+            throw new RuntimeException("Multiple commits found, use a longer commit hash.")
+        }
+
+        throw new RuntimeException("No branch, tags or commits found.")
+    }
+
+    @impure
     def create(repoFolder: File, checkable: Checkable): Unit = {
         val checkableFile = getCheckableFile(repoFolder, checkable)
 
@@ -113,7 +148,7 @@ object IOCheckable {
         val branchName = args.branchName
         val tagName = args.tagName
 
-        val commitSha = IOHead.getPointedCommit(repoFolder).sha
+        val commitSha = IOHead.getPreviousCommit(repoFolder).sha
 
         if (!branchName.isEmpty) {
             val newBranch = Branch(branchName, commitSha)

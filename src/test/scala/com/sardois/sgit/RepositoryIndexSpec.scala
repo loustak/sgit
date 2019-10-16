@@ -12,12 +12,8 @@ class RepositoryIndexSpec extends FlatSpec {
         IOIndex.add(repo, repo.parent, Config(paths = files))
 
         val index = repo/Repository.indexPath
-        if (!index.exists) {
-            fail("The index doesn't exists")
-        }
-
         val lines = index.lines().toList
-        assert(lines.size == files.length)
+        assert(lines.length == files.length)
 
         val entry = lines(0)
         val split = entry.split(" ")
@@ -237,7 +233,7 @@ class RepositoryIndexSpec extends FlatSpec {
         IOIndex.add(repo, repo.parent, Config(paths = newFiles))
 
         val newIndex = IOIndex.getIndex(repo)
-        val oldIndex = IOHead.getPointedIndex(repo)
+        val oldIndex = IOHead.getOldIndex(repo)
         val addedFiles = IOIndex.getStagedNewFiles(newIndex, oldIndex)
 
         assert(addedFiles.size == 1)
@@ -256,7 +252,7 @@ class RepositoryIndexSpec extends FlatSpec {
         IOIndex.add(repo, repo.parent, Config(paths = files))
 
         val newIndex = IOIndex.getIndex(repo)
-        val oldIndex = IOHead.getPointedIndex(repo)
+        val oldIndex = IOHead.getOldIndex(repo)
         val modifiedFiles = IOIndex.getStagedModifiedFiles(newIndex, oldIndex)
 
         assert(modifiedFiles.size == files.length)
@@ -275,7 +271,7 @@ class RepositoryIndexSpec extends FlatSpec {
         IOIndex.add(repo, repo.parent, Config(paths = files))
 
         val newIndex = IOIndex.getIndex(repo)
-        val oldIndex = IOHead.getPointedIndex(repo)
+        val oldIndex = IOHead.getOldIndex(repo)
         val deletedFiles = IOIndex.getStagedDeletedFiles(newIndex, oldIndex)
 
         assert(deletedFiles.size == files.length)
@@ -302,8 +298,9 @@ class RepositoryIndexSpec extends FlatSpec {
         IOCommit.commit(repo, repo.parent, Config(commitMessage = "Test"))
         IOTest.modifyRandomFile(file)
 
-        val indexFile = IOIndex.getIndex(repo)
-        val hasChanges = IOIndex.haveNotStagedChanges(repo, indexFile, files)
+        val newIndex = IOIndex.getIndex(repo)
+        val oldIndex = IOHead.getOldIndex(repo)
+        val hasChanges = IOIndex.haveUncommitedChanges(repo, newIndex, oldIndex, files)
 
         assert(hasChanges)
 

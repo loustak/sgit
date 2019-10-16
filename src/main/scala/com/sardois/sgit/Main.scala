@@ -52,6 +52,7 @@ object Main {
                     }
                 }
                 case "tag" => call(config, IOCheckable.create)
+                case "checkout" => call(config, IOCommit.checkout)
 
                 case _ =>
             }
