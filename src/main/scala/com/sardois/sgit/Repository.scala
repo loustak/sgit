@@ -82,7 +82,7 @@ object Repository {
         }).toList
     }
 
-    def checkablesPath: String = "checkables"
+    def detachedPath: String = "detached"
 
     def headPath: String = "HEAD"
 
@@ -90,9 +90,9 @@ object Repository {
 
     def indexesPath: String = "indexes"
 
-    def branchesPath: String = checkablesPath + "/branches"
+    def branchesPath: String = "branches"
 
-    def tagsPath: String = checkablesPath + "/tags"
+    def tagsPath: String = "tags"
 
     def blobsPath: String = "blobs"
 

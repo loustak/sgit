@@ -8,6 +8,27 @@ object IOHead {
         repoFolder/Repository.headPath
     }
 
+    def getDetachedFile(repoFolder: File) = {
+        repoFolder/Repository.detachedPath
+    }
+
+    @impure
+    def isDetached(detachedFile: File): Boolean = {
+        detachedFile.exists
+    }
+
+    @impure
+    def detach(detachedFile: File, commitSha: String): Unit = {
+        detachedFile.write(commitSha)
+    }
+
+    @impure
+    def attach(detachedFile: File): Unit = {
+        if (detachedFile.exists) {
+            detachedFile.delete()
+        }
+    }
+
     @impure
     def read(headFile: File): (String, String) = {
         val line = headFile.lines.toArray

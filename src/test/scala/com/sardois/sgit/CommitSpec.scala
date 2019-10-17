@@ -71,13 +71,14 @@ class CommitSpec extends FlatSpec {
         val commitsFolder = IOCommit.getCommitsFolder(repo)
         val firstCommit = IOCommit.read(commitsFolder, secondCommit.parentCommitSha)
 
-        IOCommit.checkout(repo, secondCommit)
-        assert(IOHead.getPreviousCommit(repo).message == messageCommit2)
+        val detachedFile = IOHead.getDetachedFile(repo)
+        val isDetached = IOHead.isDetached(detachedFile)
+
+        IOCommit.checkout(repo, repo.parent, Config(branchTagOrCommit = secondCommit.sha))
         assert(!file1.exists)
         assert(file2.exists)
 
-        IOCommit.checkout(repo, firstCommit)
-        assert(IOHead.getPreviousCommit(repo).message == messageCommit1)
+        IOCommit.checkout(repo, repo.parent, Config(branchTagOrCommit = firstCommit.sha))
         assert(file1.exists)
         assert(file2.exists)
 

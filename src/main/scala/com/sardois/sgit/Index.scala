@@ -291,12 +291,8 @@ object IOIndex {
     }
 
     @impure
-    def clean(repoFolder: File, newIndex: Index, oldIndex: Index): Unit = {
-        val files = Repository.list(repoFolder)
-        val paths = Util.filesToPath(files)
-        throwIfUncommitedChanges(repoFolder, newIndex, oldIndex, paths)
-
-        newIndex.getMap.foreach( tuple => {
+    def clean(repoFolder: File, index: Index): Unit = {
+        index.getMap.foreach( tuple => {
             val path = tuple._1
             val file = repoFolder.parent/path
             file.delete()

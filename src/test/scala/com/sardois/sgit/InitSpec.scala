@@ -43,17 +43,17 @@ class InitSpec extends FlatSpec {
         IORepositoryTest.delete(repo)
     }
 
-    it should "have a checkables folder" in {
+    it should "have a branches folder" in {
         val repo = IORepositoryTest.init()
-        val checkables = repo/Repository.checkablesPath
-        assert(checkables.isDirectory())
+        val branchFolder = repo/Repository.branchesPath
+        assert(branchFolder.isDirectory())
         IORepositoryTest.delete(repo)
     }
 
-    it should "have a checkables/branches folder" in {
+    it should "have a tags folder" in {
         val repo = IORepositoryTest.init()
-        val head = repo/Repository.branchesPath
-        assert(head.isDirectory())
+        val tagsFolder = repo/Repository.branchesPath
+        assert(tagsFolder.isDirectory())
         IORepositoryTest.delete(repo)
     }
 

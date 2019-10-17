@@ -98,33 +98,30 @@ object IOCheckable {
     }
 
     @impure
-    def find(repoFolder: File, name: String): Commit = {
+    def find(repoFolder: File, name: String): (Boolean, Commit) = {
         val commitsFolder = IOCommit.getCommitsFolder(repoFolder)
 
-        val checkableFolders = Iterable(
-            getBranchesFolder(repoFolder),
-            getTagsFolder(repoFolder)
-        )
+        val branchesFiles = getBranchesFolder(repoFolder)
+        val branchMatch = branchesFiles.list.toList.filter( file => file.name == name)
+        if (branchMatch.length == 1) {
+            val commitSha = branchMatch(0).contentAsString
+            return (false, IOCommit.read(commitsFolder, commitSha))
+        }
 
-        checkableFolders.foreach( checkableFolder => {
-            val checkables = checkableFolder.list
-            val checkableMatched = checkables.filter( file => {
-                file.name == name
-            }).toList
-
-            if (checkableMatched.length == 1) {
-                val commitSha = checkableMatched(0).contentAsString
-                return IOCommit.read(commitsFolder, commitSha)
-            }
-        })
+        val tagsFiles = getTagsFolder(repoFolder)
+        val tagMatch = tagsFiles.list.toList.filter( file => file.name == name)
+        if (tagMatch.length == 1) {
+            val commitSha = tagMatch(0).contentAsString
+            return (true, IOCommit.read(commitsFolder, commitSha))
+        }
 
         val commits = commitsFolder.list
         val matchedCommits = commits.filter( file => {
-            file.name.contains(name)
+            file.name.startsWith(name)
         }).toList
 
         if (matchedCommits.length == 1) {
-            return IOCommit.read(commitsFolder, matchedCommits(0).name)
+            return (true, IOCommit.read(commitsFolder, matchedCommits(0).name))
         } else if (matchedCommits.length > 1) {
             throw new RuntimeException("Multiple commits found, use a longer commit hash.")
         }

@@ -7,6 +7,7 @@ import java.time.temporal.TemporalAccessor
 import java.util.{Calendar, Date}
 
 import better.files.File
+import com.sardois.sgit.IOIndex.throwIfUncommitedChanges
 
 class Commit(
     val message: String,
@@ -56,6 +57,7 @@ object IOCommit {
         repoFolder/Repository.commitsPath
     }
 
+    // TODO: Be able to read multi line message
     @impure
     def read(commitFile: File): Commit = {
         if (!commitFile.exists) {
@@ -106,6 +108,7 @@ object IOCommit {
         val index = IOIndex.read(indexFile)
         val indexSha = index.sha()
 
+        // TODO: check that there is changes to commit
         val parentCommitSha = IOHead.getPointedCommitSha(repoFolder)
         val newCommit = Commit(message, indexSha, parentCommitSha)
 
@@ -118,22 +121,47 @@ object IOCommit {
 
         // Update the commit referenced by the head
         IOHead.setToCommit(repoFolder, newCommit)
+        val detachedFile = IOHead.getDetachedFile(repoFolder)
+        if (IOHead.isDetached(detachedFile)) {
+            IOHead.detach(detachedFile, newCommit.sha)
+        }
 
         None
     }
 
     @impure
-    def checkout(repoFolder: File, commit: Commit): Unit = {
+    def checkout(repoFolder: File, commandFolder: File, args: Config): Option[String] = {
+        // TODO: check that we are not on the checkable we try to reach
+        val checkableName = args.branchTagOrCommit
+        val tuple = IOCheckable.find(repoFolder, checkableName)
+        val toDetach = tuple._1
+        val commitToCheckout = tuple._2
+
+        val indexFolder = IOIndex.getIndexesFolder(repoFolder)
+        val commitIndex = IOIndex.read(indexFolder, commitToCheckout.indexSha)
+        val commitIndexMap = commitIndex.getMap
         val indexFile = IOIndex.getIndexFile(repoFolder)
         val newIndex = IOIndex.getIndex(repoFolder)
         val oldIndex = IOHead.getOldIndex(repoFolder)
-        IOIndex.clean(repoFolder, newIndex, oldIndex)
 
-        val indexFolder = IOIndex.getIndexesFolder(repoFolder)
-        val commitIndex = IOIndex.read(indexFolder, commit.indexSha)
-        val map = commitIndex.getMap
+        val files = Repository.list(repoFolder)
+        val paths = Util.filesToPath(files)
+        throwIfUncommitedChanges(repoFolder, newIndex, oldIndex, paths)
 
-        map.foreach( tuple => {
+        val untrackedFiles = IOIndex.getUntrackedFiles(repoFolder, newIndex, paths)
+        val untrackedFilesConflict = commitIndexMap.filter( line => {
+            val path = line._1
+            untrackedFiles.toList.contains(path)
+        })
+
+        if (untrackedFilesConflict.size > 0) {
+            val conflictsPath = untrackedFilesConflict.keys.map( path => path).mkString(", ")
+            throw new RuntimeException("The following untracked files conflicts: " + conflictsPath)
+        }
+
+        IOIndex.clean(repoFolder, newIndex)
+
+        commitIndexMap.foreach( tuple => {
             val workingDirectoryBlobPath = tuple._1
             val blobSha = tuple._2
 
@@ -144,21 +172,22 @@ object IOCommit {
         })
 
         IOIndex.write(indexFile, commitIndex)
-        IOHead.setToCommit(repoFolder, commit)
 
-        // TODO: pass in detechached mode if we checkout a commit
-    }
+        val detachedFile = IOHead.getDetachedFile(repoFolder)
+        if (toDetach) {
+            IOHead.detach(detachedFile, commitToCheckout.sha)
+            IOHead.setToCommit(repoFolder, commitToCheckout)
+        } else {
+            IOHead.attach(detachedFile)
+            IOHead.setToCommit(repoFolder, commitToCheckout)
+        }
 
-    @impure
-    def checkout(repoFolder: File, commandFolder: File, args: Config): Option[String] = {
-        val checkableName = args.branchTagOrCommit
-        val commitToCheckout = IOCheckable.find(repoFolder, checkableName)
-        checkout(repoFolder, commitToCheckout)
         None
     }
 
     @impure
     def log(repoFolder: File, commandFolder: File, args: Config): Option[String] = {
+        // TODO: Only show the log of the current branch
         val commitsFolder = getCommitsFolder(repoFolder)
         val commitsFiles = commitsFolder.list
 
@@ -170,6 +199,7 @@ object IOCommit {
             c1.date.after(c2.date)
         })
 
-        Some(sortedCommits.mkString(System.lineSeparator()))
+        val newLine = System.lineSeparator()
+        Some(sortedCommits.mkString(newLine + newLine))
     }
 }
