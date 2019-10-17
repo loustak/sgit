@@ -89,6 +89,21 @@ object IOCommit {
     }
 
     @impure
+    def readAll(commitFolder: File, startCommit: Commit): List[Commit] = {
+
+        def rec(commitFolder: File, commit: Commit, commitsList: List[Commit]): List[Commit] = {
+            if (commit.sha == Commit.root.sha) return commitsList
+
+            val commitParentSha = commit.parentCommitSha
+            val parentCommit = read(commitFolder, commitParentSha)
+
+            rec(commitFolder, parentCommit, commit :: commitsList)
+        }
+
+        rec(commitFolder, startCommit, List())
+    }
+
+    @impure
     def write(commitFolder: File, commit: Commit): Unit = {
         val commitSha = commit.sha
         val commitFile = commitFolder/commitSha
@@ -187,17 +202,18 @@ object IOCommit {
 
     @impure
     def log(repoFolder: File, commandFolder: File, args: Config): Option[String] = {
-        // TODO: Only show the log of the current branch
         val commitsFolder = getCommitsFolder(repoFolder)
-        val commitsFiles = commitsFolder.list
+        val currentCommitSha = IOHead.getPointedCommitSha(repoFolder)
+        val currentCommit = read(commitsFolder, currentCommitSha)
+        val commitsList = readAll(commitsFolder, currentCommit)
 
-        val commits = commitsFiles.map( file => {
-            read(file)
-        }).toList
-
-        val sortedCommits = commits.sortWith( (c1, c2) => {
+        val sortedCommits = commitsList.sortWith( (c1, c2) => {
             c1.date.after(c2.date)
         })
+
+        if (sortedCommits.isEmpty) {
+            return Some("No commits to log.")
+        }
 
         val newLine = System.lineSeparator()
         Some(sortedCommits.mkString(newLine + newLine))

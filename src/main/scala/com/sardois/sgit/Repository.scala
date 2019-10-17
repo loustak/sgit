@@ -84,7 +84,7 @@ object Repository {
 
     def detachedPath: String = "detached"
 
-    def headPath: String = "HEAD"
+    def headPath: String = "head"
 
     def indexPath: String = "index"
 
