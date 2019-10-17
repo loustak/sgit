@@ -1,6 +1,10 @@
 package com.sardois.sgit
 
+import java.text.SimpleDateFormat
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.temporal.TemporalAccessor
+import java.util.{Calendar, Date}
 
 import better.files.File
 
@@ -9,31 +13,36 @@ class Commit(
     val indexSha: String,
     val parentCommitSha: String,
     val author: String,
-    val date: String
+    val dateString: String
         ) {
 
     def sha: String = {
         Util.shaString(toString)
     }
 
+    def date: Date = {
+        Commit.dateFormatter.parse(dateString)
+    }
+
     override def toString: String = {
-        val list = List(message, author, date, parentCommitSha, indexSha)
+        val list = List(message, author, dateString, parentCommitSha, indexSha)
         list.mkString(System.lineSeparator())
     }
 }
 
 object Commit {
 
+    def dateFormatter = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss")
+
     def apply(
-         message: String,
-         indexSha: String,
-         parentCommitSha: String,
-         author: String = "Anonymous",
-         // TODO: format the string correctly to include time
-         date: String = LocalDate.now.toString
+                 message: String,
+                 indexSha: String,
+                 parentCommitSha: String,
+                 author: String = "Anonymous",
+                 dateString: String = dateFormatter.format(Calendar.getInstance().getTime)
              ): Commit = {
 
-        new Commit(message, indexSha, parentCommitSha, author, date)
+        new Commit(message, indexSha, parentCommitSha, author, dateString)
     }
 
     def root: Commit = {
@@ -136,6 +145,8 @@ object IOCommit {
 
         IOIndex.write(indexFile, commitIndex)
         IOHead.setToCommit(repoFolder, commit)
+
+        // TODO: pass in detechached mode if we checkout a commit
     }
 
     @impure
@@ -144,5 +155,21 @@ object IOCommit {
         val commitToCheckout = IOCheckable.find(repoFolder, checkableName)
         checkout(repoFolder, commitToCheckout)
         None
+    }
+
+    @impure
+    def log(repoFolder: File, commandFolder: File, args: Config): Option[String] = {
+        val commitsFolder = getCommitsFolder(repoFolder)
+        val commitsFiles = commitsFolder.list
+
+        val commits = commitsFiles.map( file => {
+            read(file)
+        }).toList
+
+        val sortedCommits = commits.sortWith( (c1, c2) => {
+            c1.date.after(c2.date)
+        })
+
+        Some(sortedCommits.mkString(System.lineSeparator()))
     }
 }
