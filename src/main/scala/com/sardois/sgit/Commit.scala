@@ -1,7 +1,23 @@
 package com.sardois.sgit
+import java.text.SimpleDateFormat
+import java.util.{Calendar, Date}
+
 import better.files.File
 
-case class Commit(repository: Repository, message: String, indexSha: String, parentCommitSha: String, author: String, date: String) extends IO{
+case class Commit(
+     repository: Repository,
+     message: String,
+     indexSha: String,
+     parentCommitSha: String,
+     author: String = "Anonymous",
+     dateString: String = Commit.dateFormatter.format(Calendar.getInstance().getTime)
+         ) extends IO {
+
+    @impure
+    lazy val index: Either[String, Index] = {
+        val indexFile = repository.indexesFolder/indexSha
+        IO.read(repository, indexFile, CommitedIndex.deserialize)
+    }
 
     @impure
     lazy val parentCommit: Either[String, Commit] = {
@@ -9,10 +25,12 @@ case class Commit(repository: Repository, message: String, indexSha: String, par
         IO.read(repository, commitFile, Commit.deserialize)
     }
 
+    val date: Date = Commit.dateFormatter.parse(dateString)
+
     override val file: File = repository.commitsFolder/sha
 
     def serialize: String = {
-        val list = List(message, indexSha, parentCommitSha, author, date)
+        val list = List(message, indexSha, parentCommitSha, author, dateString)
         list.mkString(System.lineSeparator())
     }
 
@@ -37,4 +55,6 @@ object Commit {
     def rootSha: String = {
         Util.shaString("root commit")
     }
+
+    def dateFormatter = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss")
 }

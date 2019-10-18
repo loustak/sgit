@@ -37,8 +37,16 @@ object Command {
         val commitMessage = config.commitMessage
 
         for {
-
-        }
+            currentIndex <- repository.currentIndex
+            lastCommitSha <- repository.lastCommitSha
+            newCommit <- Right(Commit(repository, commitMessage, currentIndex.sha, lastCommitSha))
+            head <- repository.head
+            branch <- head.branch
+            newBranch <- Right(branch.moveToCommit(newCommit.sha))
+            _ <- IO.write(currentIndex.toCommitIndex())
+            _ <- IO.write(newCommit)
+            result <- IO.write(newBranch)
+        } yield result
     }
 
     @impure

@@ -38,17 +38,16 @@ case class Repository(repositoryFolder: File) {
     }
 
     @impure
-    lazy val indexes: Either[String, List[Index]] = {
-        IO.readAll(this, indexesFolder, Index.deserialize)
+    lazy val indexes: Either[String, List[CommitedIndex]] = {
+        IO.readAll(this, indexesFolder, CommitedIndex.deserialize)
     }
 
     @impure
-    lazy val commit: Either[String, Commit] = {
+    lazy val lastCommitSha: Either[String, String] = {
         for {
             head <- head
             branch <- head.branch
-            commit <- branch.commit
-        } yield commit
+        } yield branch.commitSha
     }
 
     @impure

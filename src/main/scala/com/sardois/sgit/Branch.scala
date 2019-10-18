@@ -12,6 +12,10 @@ case class Branch(repository: Repository, name: String, commitSha: String) exten
     override val file: File = repository.branchesFolder/name
 
     override def serialize: String = commitSha
+
+    def moveToCommit(newCommitSha: String): Branch = {
+        Branch(repository, name, newCommitSha)
+    }
 }
 
 object Branch {
