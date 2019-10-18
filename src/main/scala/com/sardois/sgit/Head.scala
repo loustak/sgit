@@ -2,18 +2,23 @@ package com.sardois.sgit
 
 import better.files._
 
-case class Head(file: File) extends IO {
+case class Head(repository: Repository, branchName: String) extends IO {
 
-    lazy val branch: Branch = ???
-
-    override def serialize: String = {
-        branch.name
+    @impure
+    lazy val branch: Either[String, Branch] = {
+        val branchFile = repository.branchesFolder/branchName
+        IO.read(repository, branchFile, Branch.deserialize)
     }
+
+    val file: File = repository.headFile
+
+    override def serialize: String = branchName
 }
 
 object Head {
 
-    def deserialize(str: String): Either[String, Head] = {
-        ???
+    def deserialize(repository: Repository, fileName: String, str: String): Either[String, Head] = {
+        val branchName = str
+        Right(Head(repository, branchName))
     }
 }

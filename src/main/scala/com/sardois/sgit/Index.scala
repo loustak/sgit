@@ -4,7 +4,7 @@ import better.files.File
 
 import scala.annotation.tailrec
 
-case class CurrentIndex(repository: Repository, map: Map[String, String]) extends IO {
+case class Index(repository: Repository, map: Map[String, String]) extends IO {
 
     override val file: File = repository.indexFile
 
@@ -14,13 +14,13 @@ case class CurrentIndex(repository: Repository, map: Map[String, String]) extend
         }).mkString(System.lineSeparator())
     }
 
-    def add(relativePath: String, sha: String): CurrentIndex = {
-        CurrentIndex(repository, map + (relativePath -> sha))
+    def add(relativePath: String, sha: String): Index = {
+        Index(repository, map + (relativePath -> sha))
     }
 
-    def addAll(list: List[(String, String)]): CurrentIndex = {
+    def addAll(list: List[(String, String)]): Index = {
         @tailrec
-        def rec(list: List[(String, String)], index: CurrentIndex): CurrentIndex = {
+        def rec(list: List[(String, String)], index: Index): Index = {
             list match {
                 case ::(head, next) => {
                     val relativePath = head._1
@@ -34,18 +34,18 @@ case class CurrentIndex(repository: Repository, map: Map[String, String]) extend
         rec(list, this)
     }
 
-    def remove(relativePath: String): CurrentIndex = {
+    def remove(relativePath: String): Index = {
         val newMap = map.filter( tuple => {
             val key = tuple._1
             !(key == relativePath || File(key).isChildOf(File(relativePath)))
         })
 
-        CurrentIndex(repository, newMap)
+        Index(repository, newMap)
     }
 
-    def removeAll(list: List[String]): CurrentIndex = {
+    def removeAll(list: List[String]): Index = {
         @tailrec
-        def rec(list: List[String], index: CurrentIndex): CurrentIndex = {
+        def rec(list: List[String], index: Index): Index = {
             list match {
                 case ::(head, next) => {
                     rec(next, index.remove(head))
@@ -58,9 +58,9 @@ case class CurrentIndex(repository: Repository, map: Map[String, String]) extend
     }
 }
 
-object CurrentIndex {
+object Index {
 
-    def deserialize(repository: Repository, fileName: String, str: String): Either[String, CurrentIndex] = {
+    def deserialize(repository: Repository, fileName: String, str: String): Either[String, Index] = {
         val lines = str.linesIterator.toList
         val map = lines.map( line => {
             val split = line.split(" ")
@@ -69,6 +69,8 @@ object CurrentIndex {
             (path -> sha)
         }).toMap
 
-        Right(CurrentIndex(repository, map))
+        Right(Index(repository, map))
     }
 }
+
+

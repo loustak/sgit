@@ -17,23 +17,27 @@ object IO {
         try {
             func()
         } catch {
-            case ex: IOException => Left(ex.getMessage)
+            case ex: IOException => Left(ex.toString)
         }
     }
 
     @impure
-    def read[A <: IO](file: File, deserialize: (String) => Either[String, A]): Either[String, A] = {
+    def read[A <: IO](repository: Repository, file: File, deserialize: (Repository, String, String) => Either[String, A]): Either[String, A] = {
         handleIOException[A]( () => {
             val str = file.contentAsString
-            deserialize(str)
+            deserialize(repository, file.name, str)
         })
     }
 
     @impure
-    def readAll[A <: IO](folder: File, deserialize: (String) => Either[String, List[A]]): Either[String, List[A]] = {
+    def readAll[A <: IO](repository: Repository, folder: File, deserialize: (Repository, String, String) => Either[String, A]): Either[String, List[A]] = {
         handleIOException( () => {
             val files = folder.list
-            files.map( file => deserialize(file.contentAsString))
+            val t = files.map( file => deserialize(repository, file.name, file.contentAsString)).toList
+
+            val (lefts, rights) = t.partitionMap(identity)
+            if (!lefts.isEmpty) return Left(lefts(0))
+            Right(rights)
         })
     }
 
@@ -41,6 +45,14 @@ object IO {
     def write(io: IO): Either[String, String] = {
         handleIOException( () => {
             io.file.write(io.serialize)
+            Right("")
+        })
+    }
+
+    @impure
+    def writeAll(list: List[IO]): Either[String, String] = {
+        handleIOException( () => {
+            list.foreach( io => io.file.write(io.serialize))
             Right("")
         })
     }

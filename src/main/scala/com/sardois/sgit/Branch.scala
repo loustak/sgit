@@ -1,16 +1,22 @@
 package com.sardois.sgit
 import better.files.File
 
-case class Branch(name: String, commit: Commit) extends IO {
+case class Branch(repository: Repository, name: String, commitSha: String) extends IO {
 
-    override val file: File = ???
+    @impure
+    lazy val commit: Either[String, Commit] = {
+        val commitFile = repository.commitsFolder/commitSha
+        IO.read(repository, commitFile, Commit.deserialize)
+    }
 
-    override def serialize: String = ???
+    override val file: File = repository.branchesFolder/name
+
+    override def serialize: String = commitSha
 }
 
 object Branch {
 
-    def deserialize(str: String): Either[String, Branch] = {
-        ???
+    def deserialize(repository: Repository, fileName: String, str: String): Either[String, Branch] = {
+        Right(Branch(repository, fileName, str))
     }
 }
