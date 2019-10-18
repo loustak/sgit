@@ -1,13 +1,18 @@
 package com.sardois.sgit
 
-import java.io.IOException
 import java.security.MessageDigest
 
 import better.files._
 
-import scala.annotation.tailrec
-
 object Util {
+
+    def currentPath: String = {
+        System.getProperty("user.dir")
+    }
+
+    def currentFolder: File = {
+        File(currentPath)
+    }
 
     def shaFile(file: File): String = {
         shaString(file.contentAsString)

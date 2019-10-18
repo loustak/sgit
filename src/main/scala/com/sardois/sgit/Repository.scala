@@ -1,146 +1,68 @@
 package com.sardois.sgit
 
+import java.io.IOException
+
 import better.files._
 
 import scala.annotation.tailrec
 
+case class Repository(repositoryFolder: File) {
+
+    val workingDirectory: File = repositoryFolder.parent
+
+    val headFile: File = repositoryFolder/Repository.headPath
+    val indexFile: File = repositoryFolder/Repository.indexPath
+    val branchesFolder: File = repositoryFolder/Repository.branchesPath
+
+    @impure
+    lazy val head: Either[String, Head] = {
+        IO.read(headFile, Head.deserialize)
+    }
+
+    lazy val branches: Either[String, List[Branch]] = {
+        IO.readAll(branchesFolder, Branch.deserialize)
+    }
+
+    @impure
+    def init(): Either[String, String] = {
+        try {
+            repositoryFolder.createDirectories()
+
+            val masterBranch = Branch("master", Commit.root)
+            headFile.write(masterBranch.serialize)
+
+            indexFile.createFile()
+
+            Right("Repository initialized.")
+        } catch {
+            case ex: IOException => Left(ex.getMessage)
+        }
+    }
+}
+
 object Repository {
 
     // TODO: change to sgit
-    def directoryName: String = "vcs"
+    val directoryName: String = "vcs"
+    val detachedPath: String = "detached"
+    val headPath: String = "head"
+    val indexPath: String = "index"
+    val indexesPath: String = "indexes"
+    val branchesPath: String = "branches"
+    val tagsPath: String = "tags"
+    val blobsPath: String = "blobs"
+    val commitsPath: String = "commits"
 
-    def currentPath: String = {
-        System.getProperty("user.dir")
-    }
-
-    def currentFolder: File = {
-        File(currentPath)
-    }
-
-    /** If it's a sgit repository return the
-     * repository path, else return None.
-     */
+    @impure
     @tailrec
-    final def isARepository(folder: File): Option[File] = {
-        val repoFile = folder/directoryName
+    final def findRepository(folder: File): Option[File] = {
+        val repoFile = folder/Repository.directoryName
         if (repoFile.isDirectory()) {
             Some(repoFile)
         } else {
             val parent = folder.parent
             if (parent == null) return None
-            isARepository(parent)
+            findRepository(parent)
         }
-    }
-    /** Call a function inside a repository, if the repository isn't a
-     *  valid sgit repository it returns an error as a string.
-     *  It also inject the path of the issued command as a function parameter.
-     */
-    def callInside(args: Config, func: (File, File, Config) => Option[String]): Option[String] = {
-        val currentFolder = File(currentPath)
-        val commandFolder = currentFolder
-
-        Repository.isARepository(currentFolder) match {
-            case Some(repoFolder) =>
-                // Call the given function and handle some exceptions
-                func(repoFolder, commandFolder, args)
-            case _ => throw new RuntimeException("Not a sgit repository")
-        }
-    }
-
-    def relativize(repoFolder: File, file: File): String = {
-        repoFolder.parent.relativize(file).toString
-    }
-
-    def relativize(repoFolder: File, path: String): String = {
-        path.replace(repoFolder.parent.pathAsString, "")
-    }
-
-    def relativizesPath(repoFolder: File, paths: Iterable[String]): Iterable[String] = {
-        paths.map( path => {
-            relativize(repoFolder, path)
-        })
-    }
-
-    def relativizesFile(repoFolder: File, files: Iterable[File]): Iterable[String] = {
-        files.map( file => {
-            relativize(repoFolder, file)
-        })
-    }
-
-    def isARepositoryFile(repoFolder: File, file: File): Boolean = {
-        file.isChildOf(repoFolder) || file == repoFolder
-    }
-
-    /** List recursively all the files and folders inside
-     * the parent folder of the repository.
-     * Doesn't return files and folders inside the the .sgit directory
-     * nor the repository parent directory.
-     * */
-    def list(repoFolder: File): Iterable[File] = {
-        repoFolder.parent.list( file => {
-            !(file.isDirectory || isARepositoryFile(repoFolder, file))
-        }).toList
-    }
-
-    def detachedPath: String = "detached"
-
-    def headPath: String = "head"
-
-    def indexPath: String = "index"
-
-    def indexesPath: String = "indexes"
-
-    def branchesPath: String = "branches"
-
-    def tagsPath: String = "tags"
-
-    def blobsPath: String = "blobs"
-
-    def commitsPath: String = "commits"
-}
-
-object IORepository {
-
-    @impure
-    def init(folder: File): Either[String, File] = {
-        Repository.isARepository(folder) match {
-            case Some(_) => return Left("This is already an sgit repository.")
-            case None =>
-        }
-
-        // Create the repository folder
-        val repoFolder = folder/Repository.directoryName
-        repoFolder.createDirectories()
-
-        // Create the indexes folder
-        val indexesFolder = repoFolder/Repository.indexesPath
-        indexesFolder.createDirectories()
-
-        // Create the blobs folder
-        val blobsFolder = repoFolder/Repository.blobsPath
-        blobsFolder.createDirectories()
-
-        // Create the commits folder
-        val commitsFolder = repoFolder/Repository.commitsPath
-        commitsFolder.createDirectories()
-
-        // Create the index file
-        val index = repoFolder/Repository.indexPath
-        index.createFile()
-
-        // Write the checkables/branches and the master branch
-        val heads = repoFolder/Repository.branchesPath
-        heads.createDirectories()
-        val master = Branch.master
-        IOCheckable.create(repoFolder, master)
-
-        // Write the head
-        IOHead.write(repoFolder, master)
-
-        // Create the tags folder
-        val tags = repoFolder/Repository.tagsPath
-        tags.createDirectories()
-
-        Right(repoFolder)
     }
 }

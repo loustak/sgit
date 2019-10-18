@@ -1,23 +1,20 @@
 package com.sardois.sgit
 
-import java.io.IOException
-import java.nio.file.NoSuchFileException
-
-import better.files.File
-
-
 object Main {
 
     @impure
-    def call(args: Config, func: (File, File, Config) => Option[String]): Unit = {
-        try {
-            Repository.callInside(args, func) match {
-                case Some(value) => print(value)
-                case None =>
+    def init(): Unit = {
+        val currentFolder = Util.currentFolder
+        Repository.findRepository(currentFolder) match {
+            case Some(value) => println("This folder is already a " + Repository.directoryName + " repository")
+            case None => {
+                val repositoryFolder = currentFolder/Repository.directoryName
+                val repo = Repository(repositoryFolder)
+                repo.init().fold(
+                    (errorMessage) => error(errorMessage),
+                    (successMessage) => print(successMessage)
+                )
             }
-        } catch {
-            case ex: NoSuchFileException => error("File not found: " + ex.getMessage)
-            case ex: Throwable => error(ex.getMessage)
         }
     }
 
@@ -35,26 +32,7 @@ object Main {
         Parser().parse(args, Config()) match {
             case Some(config) => config.mode match {
 
-                case "init" =>
-                    val currentFolder = Repository.currentFolder
-                    IORepository.init(currentFolder) match {
-                        case Left(value) => error(value)
-                        case Right(value) =>
-                    }
-
-                case "add" => call(config, IOIndex.add)
-                case "commit" => call(config, IOCommit.commit)
-                case "status" => call(config, IOIndex.status)
-                case "branch" => {
-                    config.list match {
-                        case true => call(config, IOCheckable.list)
-                        case false => call(config, IOCheckable.create)
-                    }
-                }
-                case "tag" => call(config, IOCheckable.create)
-                case "checkout" => call(config, IOCommit.checkout)
-                case "log" => call(config, IOCommit.log)
-
+                case "init" => init()
                 case _ =>
             }
             case _ =>
