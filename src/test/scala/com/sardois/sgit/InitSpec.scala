@@ -86,7 +86,7 @@ class InitSpec extends FlatSpec {
         val checkableType = split(0)
         val branchName = split(1)
 
-        assert(checkableType == CheckableType.BRANCH.toString)
+        assert(checkableType == CheckableEnum.BRANCH.toString)
         assert(branchName == master.name)
 
         IORepositoryTest.delete(repo)

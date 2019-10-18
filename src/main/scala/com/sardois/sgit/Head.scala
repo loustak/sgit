@@ -53,10 +53,10 @@ object IOHead {
         val checkableType = tuple._1
         val checkableName = tuple._2
 
-        if (checkableType == CheckableType.BRANCH.toString) {
+        if (checkableType == CheckableEnum.BRANCH.toString) {
             val branchesFolder = IOCheckable.getBranchesFolder(repoFolder)
             return branchesFolder/checkableName
-        } else if (checkableType == CheckableType.TAG.toString) {
+        } else if (checkableType == CheckableEnum.TAG.toString) {
             val tagsFolder = IOCheckable.getTagsFolder(repoFolder)
             return tagsFolder/checkableName
         }

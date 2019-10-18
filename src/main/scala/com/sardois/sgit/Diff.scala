@@ -1,36 +1,86 @@
 package com.sardois.sgit
 
 import better.files.File
+import com.sardois.sgit.Diff.Diffs
+import com.sardois.sgit.DiffEnum.DiffEnum
 
 import scala.annotation.tailrec
 
+class Line(val lineNumber: Int, val text: String) {
+
+    def diff(otherLine: Line): Diffs = {
+        if (text == otherLine.text) {
+            List(Diff(lineNumber, DiffEnum.SAME, text))
+        } else {
+            List(
+                Diff(lineNumber, DiffEnum.REMOVE, otherLine.text),
+                Diff(lineNumber, DiffEnum.ADD, text)
+            )
+        }
+    }
+}
+
+object Line {
+
+    def apply(number: Int, text: String): Line = {
+        new Line(number, text)
+    }
+}
+
+class Diff(val lineNumber: Int, diffEnum: DiffEnum, val line: String) {
+
+}
+
+object DiffEnum extends Enumeration {
+
+    type DiffEnum = Value
+
+    val SAME = Value
+    val ADD = Value
+    val REMOVE = Value
+}
+
 object Diff {
 
-    def diff(file1: File, file2: File) = {
-        val lines1 = lines(file1)
-        val lines2 = lines(file2)
+    type Diffs = List[Diff]
+    type Lines = List[Line]
 
+    def apply(lineNumber: Int, diffEnum: DiffEnum, line: String): Diff = {
+        new Diff(lineNumber, diffEnum, line)
     }
 
-    def lines(file: File): Map[Int, String] = {
+    def linesFromString(lines: Iterable[String]): Lines = {
         @tailrec
-        def rec(lines: List[String], lineNumber: Int, map: Map[Int, String]): Map[Int, String] = {
+        def rec(lines: Iterable[String], lineNumber: Int, list: Lines): Lines = {
             lines match {
                 case ::(head, next) => {
-                    val newMap = map + (lineNumber -> head)
-                    rec(next, lineNumber + 1, newMap)
+                    val newList = Line(lineNumber, head) :: list
+                    rec(next, lineNumber + 1, newList)
                 }
-                case Nil => map
+                case Nil => list
             }
         }
 
-        rec(file.lines.toList, 1, Map[Int, String]())
+        rec(lines, 1, List())
     }
 
-    def diff(s1: String, s2: String): List[String] =
-        (s1, s2).zipped.collect {
-            case (x, y) if x != y => s"$x != $y"
-        }.toList ++
-            s1.drop(s2.length).map(x => s"$x is undefined") ++
-            s2.drop(s1.length).map(y => s"$y is missing")
+    def diff(l1: Lines, l2: Lines): Diffs = {
+        /*
+        @tailrec
+        def rec(l1: Lines, l2: Lines, lineNumber: Int, diffs: Diffs): Diffs = {
+            if (l1.isEmpty && l2.isEmpty) diffs
+
+            val la = if (l1.isEmpty) Line(lineNumber, "") else l1.head
+            val lb = if (l2.isEmpty) Line(lineNumber, "") else l2.head
+            val newl1 = if (l1.isEmpty) l1 else l1.tail
+            val newl2 = if (l2.isEmpty) l2 else l2.tail
+            val diff = la.diff(lb)
+
+            rec(newl1, newl2, lineNumber + 1, (diff :: diffs))
+        }
+
+        rec(l1, l2, 0, List())
+         */
+        ???
+    }
 }

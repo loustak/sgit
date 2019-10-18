@@ -1,18 +1,18 @@
 package com.sardois.sgit
 
 import better.files.File
-import com.sardois.sgit.CheckableType.CheckableType
+import com.sardois.sgit.CheckableEnum.CheckableEnum
 
-class Checkable(val checkableType: CheckableType, val name: String, val commitSha: String) {
+class Checkable(val checkableType: CheckableEnum, val name: String, val commitSha: String) {
 
     override def toString: String = {
         checkableType.toString + " " + name
     }
 }
 
-object CheckableType extends Enumeration {
+object CheckableEnum extends Enumeration {
 
-    type CheckableType = Value
+    type CheckableEnum = Value
 
     val BRANCH = Value("branch")
     val TAG = Value("tag")
@@ -20,7 +20,7 @@ object CheckableType extends Enumeration {
 
 object Checkable {
 
-    def apply(checkableType: CheckableType, name: String, commitSha: String): Checkable = {
+    def apply(checkableType: CheckableEnum, name: String, commitSha: String): Checkable = {
         new Checkable(checkableType, name, commitSha)
     }
 }
@@ -28,7 +28,7 @@ object Checkable {
 object Branch {
 
     def apply(name: String, commitSha: String): Checkable = {
-        Checkable(CheckableType.BRANCH, name, commitSha)
+        Checkable(CheckableEnum.BRANCH, name, commitSha)
     }
 
     def master: Checkable = {
@@ -39,7 +39,7 @@ object Branch {
 object Tag {
 
     def apply(name: String, commitSha: String): Checkable = {
-        Checkable(CheckableType.TAG, name, commitSha)
+        Checkable(CheckableEnum.TAG, name, commitSha)
     }
 }
 
@@ -56,8 +56,8 @@ object IOCheckable {
 
     def getCheckableTypeFolder(repoFolder: File, checkable: Checkable): File = {
         checkable.checkableType match {
-            case CheckableType.BRANCH => getBranchesFolder(repoFolder)
-            case CheckableType.TAG => getTagsFolder(repoFolder)
+            case CheckableEnum.BRANCH => getBranchesFolder(repoFolder)
+            case CheckableEnum.TAG => getTagsFolder(repoFolder)
         }
     }
 

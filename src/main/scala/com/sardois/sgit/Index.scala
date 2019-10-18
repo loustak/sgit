@@ -208,6 +208,7 @@ object IOIndex {
         getNotStagedDeletedFiles(repoFolder, newIndex, paths).nonEmpty
     }
 
+    @impure
     def throwIfUncommitedChanges(repoFolder: File, newIndex: Index, oldIndex: Index, paths: Iterable[String]): Unit = {
         if (haveUncommitedChanges(repoFolder, newIndex, oldIndex, paths)) {
             throw new RuntimeException("You have uncommited changes, please first commit your changes.")
@@ -235,23 +236,6 @@ object IOIndex {
 
         write(indexFile, newIndex)
         IOBlob.writeAll(blobsFolder, filesToAddCleaned)
-
-        None
-    }
-
-    @impure
-    def remove(repoFolder: File, commandFolder: File, args: Config): Option[String] = {
-        // TODO: Check that the file has been committed, it this function needed?
-        val relativePaths = args.paths.map( path => {
-            Repository.relativize(repoFolder, File(path))
-        })
-        val indexEntriesToRemove = IndexEntry.fromPathsWithEmptySha(relativePaths)
-        val indexFile = getIndexFile(repoFolder)
-        val index = read(indexFile)
-
-        val newIndex = index.removeAll(indexEntriesToRemove)
-
-        write(indexFile, newIndex)
 
         None
     }

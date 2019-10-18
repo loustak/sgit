@@ -1,13 +1,12 @@
 package com.sardois.sgit
 
 import java.text.SimpleDateFormat
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.time.temporal.TemporalAccessor
 import java.util.{Calendar, Date}
 
 import better.files.File
 import com.sardois.sgit.IOIndex.throwIfUncommitedChanges
+
+import scala.annotation.tailrec
 
 class Commit(
     val message: String,
@@ -90,7 +89,7 @@ object IOCommit {
 
     @impure
     def readAll(commitFolder: File, startCommit: Commit): List[Commit] = {
-
+        @tailrec
         def rec(commitFolder: File, commit: Commit, commitsList: List[Commit]): List[Commit] = {
             if (commit.sha == Commit.root.sha) return commitsList
 
