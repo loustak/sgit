@@ -37,6 +37,11 @@ case class Repository(repositoryFolder: File) {
     }
 
     @impure
+    lazy val commits: Either[String, List[Commit]] = {
+        IO.readAll(this, commitsFolder, Commit.deserialize)
+    }
+
+    @impure
     lazy val branches: Either[String, List[Branch]] = {
         IO.readAll(this, branchesFolder, Branch.deserialize)
     }

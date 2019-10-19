@@ -50,6 +50,7 @@ object Main {
                     case false => call(config, Command.createBranch)
                 }
                 case "tag" => call(config, Command.createTag)
+                case "log" => call(config, Command.log)
                 case _ =>
             }
             case _ =>
