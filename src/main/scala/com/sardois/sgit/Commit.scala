@@ -4,6 +4,8 @@ import java.util.{Calendar, Date}
 
 import better.files.File
 
+import scala.annotation.tailrec
+
 case class Commit(
      repository: Repository,
      message: String,
@@ -23,6 +25,32 @@ case class Commit(
     lazy val parentCommit: Either[String, Commit] = {
         val commitFile = repository.commitsFolder/parentCommitSha
         IO.read(repository, commitFile, Commit.deserialize)
+    }
+
+    @impure
+    def foreachCommit(func: (Commit, Commit) => Either[String, String]): Either[String, String] = {
+
+        @tailrec
+        def rec(previousCommit: Commit, parentCommitSha: String, str: String): Either[String, String] = {
+            if (parentCommitSha == Commit.root(repository).sha) {
+                return Right(str)
+            }
+
+            val commitFile = repository.commitsFolder/parentCommitSha
+            IO.read(repository, commitFile, Commit.deserialize) match {
+                case Left(error) => Left(error)
+                case Right(currentCommit) => {
+                    func(previousCommit, currentCommit) match {
+                        case Left(error) => Left(error)
+                        case Right(newStr) => {
+                            rec(currentCommit, currentCommit.parentCommitSha, str + newStr)
+                        }
+                    }
+                }
+            }
+        }
+
+        rec(this, parentCommitSha, "")
     }
 
     lazy val date: Date = Commit.dateFormatter.parse(dateString)

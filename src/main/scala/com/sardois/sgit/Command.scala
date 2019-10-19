@@ -162,6 +162,11 @@ object Command {
     }
 
     @impure
+    def diff(repository: Repository, config: Config): Either[String, String] = {
+        ???
+    }
+
+    @impure
     def log(repository: Repository, config: Config): Either[String, String] = {
         repository.commitsBranch.map( commits => {
             val sortedCommits = commits.sortWith( (c1, c2) => {
@@ -169,6 +174,31 @@ object Command {
             })
             UI.log(sortedCommits)
         })
+    }
+
+    @impure
+    def logPatch(repository: Repository, config: Config): Either[String, String] = {
+        Right("hola")
+    }
+
+    @impure
+    def logStat(repository: Repository, config: Config): Either[String, String] = {
+        repository.lastCommit.map( commit => {
+            commit.foreachCommit( (newCommit, oldCommit) => {
+                val indexes = for {
+                    newIndex <- newCommit.index
+                    oldIndex <- oldCommit.index
+                } yield (newIndex, oldIndex)
+
+                indexes.map(tuple => {
+                    val newIndex = tuple._1
+                    val oldIndex = tuple._2
+                    val stats = Index.diff(repository, newIndex, oldIndex)
+
+                    UI.logStats(newCommit, stats)
+                })
+            })
+        }).flatten
     }
 }
 

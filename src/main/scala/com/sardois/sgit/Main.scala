@@ -50,7 +50,14 @@ object Main {
                     case false => call(config, Command.createBranch)
                 }
                 case "tag" => call(config, Command.createTag)
-                case "log" => call(config, Command.log)
+                case "log" => config.patch match {
+                    case true => call(config, Command.logPatch)
+                    case false => config.stat match {
+                        case true => call(config, Command.logStat)
+                        case false => call(config, Command.log)
+                    }
+                }
+                case "diff" => call(config, Command.diff)
                 case _ =>
             }
             case _ =>

@@ -91,7 +91,7 @@ object Parser {
                         .text("Show changes overtime"),
 
                     opt[Unit]('s', "stat")
-                        .action((_, c) => c.copy(patch = true))
+                        .action((_, c) => c.copy(stat = true))
                         .text("Show stats about changes overtime."),
                 )
 

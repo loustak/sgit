@@ -1,12 +1,13 @@
 package com.sardois.sgit
 
 import better.files.File
+import com.sardois.sgit.Diff.Diffs
 
 import scala.annotation.tailrec
 
 trait Index extends IO {
 
-    val map: Map[String, String]
+    val mapIndex: Map[String, String]
 
     def add(relativePath: String, sha: String): Index
 
@@ -43,8 +44,8 @@ trait Index extends IO {
     }
 
     override def serialize: String = {
-        map.keys.map( key => {
-            key + " " + map(key)
+        mapIndex.keys.map(key => {
+            key + " " + mapIndex(key)
         }).mkString(System.lineSeparator())
     }
 
@@ -53,22 +54,22 @@ trait Index extends IO {
     }
 
     def newfiles(otherIndex: Index): List[String] = {
-        map.keys.filter( key => {
-            !otherIndex.map.contains(key)
+        mapIndex.keys.filter(key => {
+            !otherIndex.mapIndex.contains(key)
         }).toList
     }
 
     def modified(otherIndex: Index): List[String] = {
-        otherIndex.map.keys.filter( key => {
-            if (map.contains(key)) {
-                otherIndex.map(key) != map(key)
+        otherIndex.mapIndex.keys.filter(key => {
+            if (mapIndex.contains(key)) {
+                otherIndex.mapIndex(key) != mapIndex(key)
             } else false
         }).toList
     }
 
     def deleted(otherIndex: Index): List[String] = {
-        map.keys.filter( key => {
-            !otherIndex.map.contains(key)
+        mapIndex.keys.filter(key => {
+            !otherIndex.mapIndex.contains(key)
         }).toList
     }
 }
@@ -83,18 +84,46 @@ object Index {
             (path -> sha)
         }).toMap
     }
+
+    @impure
+    def diff(repository: Repository, newIndex: Index, oldIndex: Index): Map[String, Diffs] = {
+        val blobFolder = repository.blobsFolder
+
+        newIndex.mapIndex.keys.map(path => {
+            val newSha = newIndex.mapIndex(path)
+            val newBlobFile = blobFolder/newSha
+
+            if (oldIndex.mapIndex.contains(path)) {
+                val oldSha = oldIndex.mapIndex(path)
+
+                if (newSha != oldSha) {
+                    val oldBlobFile = blobFolder/oldSha
+
+                    val lines1 = newBlobFile.lines.toVector
+                    val lines2 = oldBlobFile.lines.toVector
+
+                    (path -> Diff.diff(lines1, lines2))
+                } else {
+                    (path -> Vector())
+                }
+
+            } else {
+                (path -> Vector())
+            }
+        })
+    }.toMap
 }
 
-case class CommitedIndex(repository: Repository, map: Map[String, String]) extends Index {
+case class CommitedIndex(repository: Repository, mapIndex: Map[String, String]) extends Index {
 
     override val file: File = repository.indexesFolder/sha
 
     def add(relativePath: String, sha: String): Index = {
-        CommitedIndex(repository, map + (relativePath -> sha))
+        CommitedIndex(repository, mapIndex + (relativePath -> sha))
     }
 
     def remove(relativePath: String): Index = {
-        val newMap = map.filter( tuple => {
+        val newMap = mapIndex.filter(tuple => {
             val key = tuple._1
             !(key == relativePath || File(key).isChildOf(File(relativePath)))
         })
@@ -116,16 +145,16 @@ object CommitedIndex {
     }
 }
 
-case class NotCommitedIndex(repository: Repository, map: Map[String, String]) extends Index {
+case class NotCommitedIndex(repository: Repository, mapIndex: Map[String, String]) extends Index {
 
     override val file: File = repository.indexFile
 
     def add(relativePath: String, sha: String): Index = {
-        NotCommitedIndex(repository, map + (relativePath -> sha))
+        NotCommitedIndex(repository, mapIndex + (relativePath -> sha))
     }
 
     def remove(relativePath: String): Index = {
-        val newMap = map.filter( tuple => {
+        val newMap = mapIndex.filter(tuple => {
             val key = tuple._1
             !(key == relativePath || File(key).isChildOf(File(relativePath)))
         })
@@ -134,12 +163,12 @@ case class NotCommitedIndex(repository: Repository, map: Map[String, String]) ex
     }
 
     def toStagedIndex(): CommitedIndex = {
-        CommitedIndex(repository, map)
+        CommitedIndex(repository, mapIndex)
     }
 
     def untracked(relativePaths: List[String]): List[String] = {
         relativePaths.filter( path => {
-            !map.contains(path)
+            !mapIndex.contains(path)
         })
     }
 }
