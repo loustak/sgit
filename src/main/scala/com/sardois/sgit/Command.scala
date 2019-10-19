@@ -63,48 +63,31 @@ object Command {
         val deletedIndex = NotStagedIndex(repository, deletedFilesToCheck)
 
         val indexes = for {
+            head <- repository.head
+            branch <- head.branch
             notStagedIndex <- repository.currentIndex
             lastCommit <- repository.lastCommit
             stagedIndex <- lastCommit.index
-        } yield (notStagedIndex, stagedIndex)
+        } yield (branch, notStagedIndex, stagedIndex)
 
         indexes match {
             case Left(value) => Left(value)
             case Right(tuple) => {
-                val notStagedIndex = tuple._1
-                val stagedIndex = tuple._2
+                val branch = tuple._1
+                val notStagedIndex = tuple._2
+                val stagedIndex = tuple._3
 
-                val newStagedFiles = notStagedIndex.newfiles(stagedIndex)
-                val modifiedStagedFiles = notStagedIndex.modified(stagedIndex)
-                val deletedStagedFiles = notStagedIndex.deleted(stagedIndex)
-                val modifiedNotStagedFiles = notStagedIndex.modified(modifiedIndex)
-                val deletedNotStagedFiles = notStagedIndex.deleted(deletedIndex)
-                val untrackedFiles = notStagedIndex.untracked(relativePaths)
-
-                val newLine = System.lineSeparator()
-                val newStagedFilesStr = newStagedFiles.map( str => "added: " + str)
-                val modifiedStagedFilesStr = modifiedStagedFiles.map( str => "modified: " + str)
-                val deletedStagedFilesStr = deletedStagedFiles.map( str => "deleted: " + str)
-                val modifiedNotStagedFilesStr = modifiedNotStagedFiles.map( str => "modified: " + str)
-                val deletedNotStagedFilesStr = deletedNotStagedFiles.map( str => "deleted: " + str)
-
-                val stagedStr = List(
-                    "Staged changes:",
-                    newStagedFilesStr,
-                    modifiedStagedFilesStr,
-                    deletedStagedFilesStr
-                ).mkString(newLine)
-                val notStagedStr = List(
-                    "Not staged changes:",
-                    modifiedNotStagedFilesStr,
-                    deletedNotStagedFilesStr
-                )
-                val untrackedFilesStr = List(
-                    "Untracked files:",
-                    untrackedFiles.mkString(newLine)
+                val finalStr = UI.status(
+                    branch.name,
+                    notStagedIndex.newfiles(stagedIndex),
+                    notStagedIndex.modified(stagedIndex),
+                    stagedIndex.deleted(notStagedIndex),
+                    notStagedIndex.modified(modifiedIndex),
+                    notStagedIndex.deleted(deletedIndex),
+                    notStagedIndex.untracked(relativePaths)
                 )
 
-                Right(List(stagedStr, notStagedStr, untrackedFilesStr).mkString(newLine))
+                Right(finalStr)
             }
         }
     }

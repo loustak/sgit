@@ -52,10 +52,14 @@ case class Repository(repositoryFolder: File) {
 
     @impure
     lazy val lastCommit: Either[String, Commit] = {
-        for {
-            lastCommitSha <- lastCommitSha
-            lastCommit <- IO.read(this, commitsFolder/lastCommitSha, Commit.deserialize)
-        } yield lastCommit
+        lastCommitSha.map( lastCommitSha => {
+            val rootCommit = Commit.root(this)
+            if (lastCommitSha == rootCommit.sha) {
+                Right(rootCommit)
+            } else {
+                IO.read(this, commitsFolder/lastCommitSha, Commit.deserialize)
+            }
+        }).flatten
     }
 
     @impure
@@ -63,7 +67,8 @@ case class Repository(repositoryFolder: File) {
         try {
             repositoryFolder.createDirectories()
 
-            val masterBranch = Branch(this, "master", Commit.rootSha)
+            val rootCommit = Commit.root(this)
+            val masterBranch = Branch(this, "master", rootCommit.sha)
             headFile.write(masterBranch.name)
 
             branchesFolder.createDirectories()
@@ -74,6 +79,7 @@ case class Repository(repositoryFolder: File) {
             blobsFolder.createDirectories()
             commitsFolder.createDirectories()
             indexesFolder.createDirectories()
+            IO.write(StagedIndex.empty(this))
 
             Right("Repository initialized.")
         } catch {

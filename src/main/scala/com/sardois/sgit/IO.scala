@@ -17,7 +17,10 @@ object IO {
         try {
             func()
         } catch {
-            case ex: IOException => Left(ex.toString)
+            case ex: IOException => {
+                ex.printStackTrace()
+                Left(ex.getMessage)
+            }
         }
     }
 

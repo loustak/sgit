@@ -25,7 +25,7 @@ case class Commit(
         IO.read(repository, commitFile, Commit.deserialize)
     }
 
-    val date: Date = Commit.dateFormatter.parse(dateString)
+    lazy val date: Date = Commit.dateFormatter.parse(dateString)
 
     override val file: File = repository.commitsFolder/sha
 
@@ -52,8 +52,8 @@ object Commit {
         Right(Commit(repository, message, indexSha, parentCommitSha, author, date))
     }
 
-    def rootSha: String = {
-        Util.shaString("root commit")
+    def root(repository: Repository): Commit = {
+        Commit(repository, "root commit", StagedIndex.empty(repository).sha, "", "", "")
     }
 
     def dateFormatter = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss")

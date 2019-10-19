@@ -6,13 +6,15 @@ object Main {
     def init(): Unit = {
         val currentFolder = Util.currentFolder
         Repository.findRepository(currentFolder) match {
-            case Some(value) => error("This folder is already a " + Repository.directoryName + " repository.")
+            case Some(value) => {
+                UI.printError("This folder is already a " + Repository.directoryName + " repository.")
+            }
             case None => {
                 val repositoryFolder = currentFolder/Repository.directoryName
                 val repo = Repository(repositoryFolder)
                 repo.init().fold(
-                    (errorMessage) => error(errorMessage),
-                    (successMessage) => print(successMessage)
+                    (errorMessage) => UI.printError(errorMessage),
+                    (successMessage) => UI.printSuccess(successMessage)
                 )
             }
         }
@@ -22,25 +24,16 @@ object Main {
     def call(config: Config, command: (Repository, Config) => Either[String, String]): Unit = {
         val currentFolder = Util.currentFolder
         Repository.findRepository(currentFolder) match {
-            case None => error("Not a " + Repository.directoryName + " repository.")
+            case None => UI.printError("Not a " + Repository.directoryName + " repository.")
             case Some(repositoryFolder) => {
                 val repoFolder = Repository(repositoryFolder)
+
                 command(repoFolder, config) match {
-                    case Left(value) => error(value)
-                    case Right(value) => print(value)
+                    case Left(value) => UI.printError(value)
+                    case Right(value) => UI.printSuccess(value)
                 }
             }
         }
-    }
-
-    @impure
-    def print(str: String): Unit = {
-        println(str)
-    }
-
-    @impure
-    def error(str: String): Unit = {
-        println("error: " + str)
     }
 
     def main(args : Array[String]): Unit = {

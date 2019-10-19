@@ -52,24 +52,24 @@ trait Index extends IO {
         Util.shaString(serialize)
     }
 
-    def newfiles(otherIndex: Index): Iterable[String] = {
+    def newfiles(otherIndex: Index): List[String] = {
         map.keys.filter( key => {
             !otherIndex.map.contains(key)
-        })
+        }).toList
     }
 
-    def modified(otherIndex: Index): Iterable[String] = {
+    def modified(otherIndex: Index): List[String] = {
         otherIndex.map.keys.filter( key => {
             if (map.contains(key)) {
                 otherIndex.map(key) != map(key)
             } else false
-        })
+        }).toList
     }
 
-    def deleted(otherIndex: Index): Iterable[String] = {
+    def deleted(otherIndex: Index): List[String] = {
         map.keys.filter( key => {
             !otherIndex.map.contains(key)
-        })
+        }).toList
     }
 }
 
@@ -109,6 +109,10 @@ object StagedIndex {
         val lines = str.linesIterator.toList
         val map = Index.linesToMap(lines)
         Right(StagedIndex(repository, map))
+    }
+
+    def empty(repository: Repository): StagedIndex = {
+        StagedIndex(repository, Map[String, String]())
     }
 }
 
