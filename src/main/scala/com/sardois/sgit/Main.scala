@@ -47,8 +47,9 @@ object Main {
                 case "checkout" => call(config, Command.checkout)
                 case "branch" => config.list match {
                     case true => call(config, Command.listBranchAndTags)
-                    case false =>
+                    case false => call(config, Command.createBranch)
                 }
+                case "tag" => call(config, Command.createTag)
                 case _ =>
             }
             case _ =>

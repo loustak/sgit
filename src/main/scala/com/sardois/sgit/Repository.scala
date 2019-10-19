@@ -1,7 +1,6 @@
 package com.sardois.sgit
 
 import java.io.IOException
-import java.nio.file.Path
 
 import better.files._
 
@@ -14,6 +13,7 @@ case class Repository(repositoryFolder: File) {
     val headFile: File = repositoryFolder/Repository.headPath
     val indexFile: File = repositoryFolder/Repository.indexPath
     val branchesFolder: File = repositoryFolder/Repository.branchesPath
+    val tagsFolder: File = repositoryFolder/Repository.tagsPath
     val blobsFolder: File = repositoryFolder/Repository.blobsPath
     val commitsFolder: File = repositoryFolder/Repository.commitsPath
     val indexesFolder: File = repositoryFolder/Repository.indexesPath
@@ -24,6 +24,14 @@ case class Repository(repositoryFolder: File) {
     }
 
     @impure
+    lazy val branch: Either[String, Branch] = {
+        for {
+            head <- head
+            branch <- head.branch
+        } yield branch
+    }
+
+    @impure
     lazy val notCommitedCurrentIndex: Either[String, NotCommitedIndex] = {
         IO.read(this, indexFile, NotCommitedIndex.deserialize)
     }
@@ -31,6 +39,11 @@ case class Repository(repositoryFolder: File) {
     @impure
     lazy val branches: Either[String, List[Branch]] = {
         IO.readAll(this, branchesFolder, Branch.deserialize)
+    }
+
+    @impure
+    lazy val tags: Either[String, List[Tag]] = {
+        IO.readAll(this, tagsFolder, Tag.deserialize)
     }
 
     @impure
@@ -46,8 +59,7 @@ case class Repository(repositoryFolder: File) {
     @impure
     lazy val lastCommitSha: Either[String, String] = {
         for {
-            head <- head
-            branch <- head.branch
+            branch <- branch
         } yield branch.commitSha
     }
 
@@ -98,6 +110,8 @@ case class Repository(repositoryFolder: File) {
         try {
             repositoryFolder.createDirectories()
 
+            indexFile.createFile()
+
             val rootCommit = Commit.root(this)
             val masterBranch = Branch(this, "master", rootCommit.sha)
             headFile.write(masterBranch.name)
@@ -105,7 +119,7 @@ case class Repository(repositoryFolder: File) {
             branchesFolder.createDirectories()
             IO.write(masterBranch)
 
-            indexFile.createFile()
+            tagsFolder.createDirectories()
 
             blobsFolder.createDirectories()
             commitsFolder.createDirectories()
