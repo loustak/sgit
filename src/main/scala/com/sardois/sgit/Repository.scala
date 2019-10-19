@@ -1,6 +1,7 @@
 package com.sardois.sgit
 
 import java.io.IOException
+import java.nio.file.Path
 
 import better.files._
 
@@ -63,6 +64,11 @@ case class Repository(repositoryFolder: File) {
     }
 
     @impure
+    lazy val hasUncommitedChanges: Either[String, Boolean] = {
+        Right(false)
+    }
+
+    @impure
     def init(): Either[String, String] = {
         try {
             repositoryFolder.createDirectories()
@@ -85,6 +91,26 @@ case class Repository(repositoryFolder: File) {
         } catch {
             case ex: IOException => Left(ex.getMessage)
         }
+    }
+
+    def listAllFiles(): List[File] = {
+        workingDirectory.listRecursively
+            .filter(file => {
+                !(
+                    file == repositoryFolder ||
+                    file.isDirectory ||
+                    file.isChildOf(repositoryFolder)
+                )
+            })
+            .toList
+    }
+
+    def relativize(file: File): String = {
+        workingDirectory.relativize(file).toString
+    }
+
+    def relativizeFiles(files: List[File]): List[String] = {
+        files.map(file => relativize(file))
     }
 }
 

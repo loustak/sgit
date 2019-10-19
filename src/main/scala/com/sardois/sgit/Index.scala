@@ -138,8 +138,8 @@ case class NotStagedIndex(repository: Repository, map: Map[String, String]) exte
     }
 
     def untracked(relativePaths: List[String]): List[String] = {
-        relativePaths.filter( relativePath => {
-            !map.contains(relativePath)
+        relativePaths.filter( path => {
+            !map.contains(path)
         })
     }
 }

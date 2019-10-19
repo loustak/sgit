@@ -6,16 +6,23 @@ object Command {
 
     @impure
     def add(repository: Repository, config: Config): Either[String, String] = {
-        val paths = config.paths
-        val files = paths.map( path => File(path))
-        val relativeFiles = files.map( file => (repository.workingDirectory.relativize(file).toString)).toList
+        val files = config.paths
+            .map(path => File(path))
+            .toList
 
-        val filesToRemove = relativeFiles
+        val filesToRemove = files.map(file => repository.relativize(file))
 
-        val existingFiles = files.filter( file => file.exists)
-        val nestedFiles = existingFiles.map( file => file :: file.listRecursively.toList ).toList.flatten
-        val cleanedNestedFiles = nestedFiles.filter( file => !file.isDirectory)
-        val filesToAdd = cleanedNestedFiles.map( file => (repository.workingDirectory.relativize(file).toString, Util.shaFile(file)))
+        val filesToAdd = files
+            .filter(file => file.exists)
+            .map(file => file :: file.listRecursively.toList).flatten
+            .filter(file => {
+                !(
+                    file.isDirectory ||
+                    file == repository.repositoryFolder ||
+                    file.isChildOf(repository.repositoryFolder)
+                )
+            })
+            .map(file => (repository.relativize(file), Util.shaFile(file)))
 
         val blobs = filesToAdd.map( (tuple) => {
             val file = File(tuple._1)
@@ -51,16 +58,18 @@ object Command {
 
     @impure
     def status(repository: Repository, config: Config): Either[String, String] = {
-        val files = repository.workingDirectory.listRecursively
-        val cleanedFiles = files.filter( file => {
-            !(file == repository.repositoryFolder  || file.isDirectory || file.isChildOf(repository.repositoryFolder))
-        })
-        val relativePaths = cleanedFiles.map( file => repository.workingDirectory.relativize(file).toString).toList
-        val filesModifiedToCheck = relativePaths.map( path => (path, Util.shaFile(File(path)))).toMap
-        val deletedFilesToCheck = relativePaths.filter( path => File(path).exists).map( path => (path , "")).toMap
+        val files = repository.listAllFiles()
 
-        val modifiedIndex = NotStagedIndex(repository, filesModifiedToCheck)
-        val deletedIndex = NotStagedIndex(repository, deletedFilesToCheck)
+        val modifiedFiles = files
+            .filter(file => file.exists)
+            .map(file => (repository.relativize(file), Util.shaFile(file)))
+            .toMap
+        val deletedFiles = files
+            .map(file => (repository.relativize(file), ""))
+            .toMap
+
+        val modifiedIndex = NotStagedIndex(repository, modifiedFiles)
+        val deletedIndex = NotStagedIndex(repository, deletedFiles)
 
         val indexes = for {
             head <- repository.head
@@ -84,7 +93,7 @@ object Command {
                     stagedIndex.deleted(notStagedIndex),
                     notStagedIndex.modified(modifiedIndex),
                     notStagedIndex.deleted(deletedIndex),
-                    notStagedIndex.untracked(relativePaths)
+                    notStagedIndex.untracked(repository.relativizeFiles(files))
                 )
 
                 Right(finalStr)
