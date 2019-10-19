@@ -23,8 +23,8 @@ case class Repository(repositoryFolder: File) {
     }
 
     @impure
-    lazy val currentIndex: Either[String, CurrentIndex] = {
-        IO.read(this, indexFile, CurrentIndex.deserialize)
+    lazy val currentIndex: Either[String, NotStagedIndex] = {
+        IO.read(this, indexFile, NotStagedIndex.deserialize)
     }
 
     @impure
@@ -38,8 +38,8 @@ case class Repository(repositoryFolder: File) {
     }
 
     @impure
-    lazy val indexes: Either[String, List[CommitedIndex]] = {
-        IO.readAll(this, indexesFolder, CommitedIndex.deserialize)
+    lazy val indexes: Either[String, List[StagedIndex]] = {
+        IO.readAll(this, indexesFolder, StagedIndex.deserialize)
     }
 
     @impure
@@ -48,6 +48,14 @@ case class Repository(repositoryFolder: File) {
             head <- head
             branch <- head.branch
         } yield branch.commitSha
+    }
+
+    @impure
+    lazy val lastCommit: Either[String, Commit] = {
+        for {
+            lastCommitSha <- lastCommitSha
+            lastCommit <- IO.read(this, commitsFolder/lastCommitSha, Commit.deserialize)
+        } yield lastCommit
     }
 
     @impure

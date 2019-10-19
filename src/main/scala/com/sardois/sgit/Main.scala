@@ -50,6 +50,7 @@ object Main {
                 case "init" => init()
                 case "add" => call(config, Command.add)
                 case "commit" => call(config, Command.commit)
+                case "status" => call(config, Command.status)
                 case "branch" => config.list match {
                     case true => call(config, Command.listBranchAndTags)
                     case false =>

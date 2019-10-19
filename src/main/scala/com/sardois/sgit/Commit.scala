@@ -16,7 +16,7 @@ case class Commit(
     @impure
     lazy val index: Either[String, Index] = {
         val indexFile = repository.indexesFolder/indexSha
-        IO.read(repository, indexFile, CommitedIndex.deserialize)
+        IO.read(repository, indexFile, StagedIndex.deserialize)
     }
 
     @impure
@@ -43,11 +43,11 @@ object Commit {
 
     def deserialize(repository: Repository, fileName: String, str: String): Either[String, Commit] = {
         val lines = str.linesIterator.toList
-        val message = lines(1)
-        val indexSha = lines(2)
-        val parentCommitSha = lines(3)
-        val author = lines(4)
-        val date = lines(5)
+        val message = lines(0)
+        val indexSha = lines(1)
+        val parentCommitSha = lines(2)
+        val author = lines(3)
+        val date = lines(4)
 
         Right(Commit(repository, message, indexSha, parentCommitSha, author, date))
     }

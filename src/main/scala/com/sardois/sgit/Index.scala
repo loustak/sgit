@@ -51,6 +51,26 @@ trait Index extends IO {
     def sha: String = {
         Util.shaString(serialize)
     }
+
+    def newfiles(otherIndex: Index): Iterable[String] = {
+        map.keys.filter( key => {
+            !otherIndex.map.contains(key)
+        })
+    }
+
+    def modified(otherIndex: Index): Iterable[String] = {
+        otherIndex.map.keys.filter( key => {
+            if (map.contains(key)) {
+                otherIndex.map(key) != map(key)
+            } else false
+        })
+    }
+
+    def deleted(otherIndex: Index): Iterable[String] = {
+        map.keys.filter( key => {
+            !otherIndex.map.contains(key)
+        })
+    }
 }
 
 object Index {
@@ -65,12 +85,12 @@ object Index {
     }
 }
 
-case class CommitedIndex(repository: Repository, map: Map[String, String]) extends Index {
+case class StagedIndex(repository: Repository, map: Map[String, String]) extends Index {
 
     override val file: File = repository.indexesFolder/sha
 
     def add(relativePath: String, sha: String): Index = {
-        CommitedIndex(repository, map + (relativePath -> sha))
+        StagedIndex(repository, map + (relativePath -> sha))
     }
 
     def remove(relativePath: String): Index = {
@@ -79,25 +99,25 @@ case class CommitedIndex(repository: Repository, map: Map[String, String]) exten
             !(key == relativePath || File(key).isChildOf(File(relativePath)))
         })
 
-        CommitedIndex(repository, newMap)
+        StagedIndex(repository, newMap)
     }
 }
 
-object CommitedIndex {
+object StagedIndex {
 
-    def deserialize(repository: Repository, fileName: String, str: String): Either[String, CommitedIndex] = {
+    def deserialize(repository: Repository, fileName: String, str: String): Either[String, StagedIndex] = {
         val lines = str.linesIterator.toList
         val map = Index.linesToMap(lines)
-        Right(CommitedIndex(repository, map))
+        Right(StagedIndex(repository, map))
     }
 }
 
-case class CurrentIndex(repository: Repository, map: Map[String, String]) extends Index {
+case class NotStagedIndex(repository: Repository, map: Map[String, String]) extends Index {
 
     override val file: File = repository.indexFile
 
     def add(relativePath: String, sha: String): Index = {
-        CurrentIndex(repository, map + (relativePath -> sha))
+        NotStagedIndex(repository, map + (relativePath -> sha))
     }
 
     def remove(relativePath: String): Index = {
@@ -106,19 +126,25 @@ case class CurrentIndex(repository: Repository, map: Map[String, String]) extend
             !(key == relativePath || File(key).isChildOf(File(relativePath)))
         })
 
-        CurrentIndex(repository, newMap)
+        NotStagedIndex(repository, newMap)
     }
 
-    def toCommitIndex(): CommitedIndex = {
-        CommitedIndex(repository, map)
+    def toStagedIndex(): StagedIndex = {
+        StagedIndex(repository, map)
+    }
+
+    def untracked(relativePaths: List[String]): List[String] = {
+        relativePaths.filter( relativePath => {
+            !map.contains(relativePath)
+        })
     }
 }
 
-object CurrentIndex {
+object NotStagedIndex {
 
-    def deserialize(repository: Repository, fileName: String, str: String): Either[String, CurrentIndex] = {
+    def deserialize(repository: Repository, fileName: String, str: String): Either[String, NotStagedIndex] = {
         val lines = str.linesIterator.toList
         val map = Index.linesToMap(lines)
-        Right(CurrentIndex(repository, map))
+        Right(NotStagedIndex(repository, map))
     }
 }
