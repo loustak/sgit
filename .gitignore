@@ -2,6 +2,7 @@
 .metals
 .vscode
 .sgit
+sgit
 test/*
 target
 project/*
