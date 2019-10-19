@@ -163,7 +163,7 @@ object Command {
 
     @impure
     def log(repository: Repository, config: Config): Either[String, String] = {
-        repository.commits.map( commits => {
+        repository.commitsBranch.map( commits => {
             val sortedCommits = commits.sortWith( (c1, c2) => {
                 c1.date.after(c2.date)
             })

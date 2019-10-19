@@ -1,7 +1,5 @@
 package com.sardois.sgit
 
-import java.io.IOException
-
 import better.files._
 import org.scalatest.{Assertion, FlatSpec}
 

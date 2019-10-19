@@ -42,6 +42,25 @@ case class Repository(repositoryFolder: File) {
     }
 
     @impure
+    lazy val commitsBranch: Either[String, List[Commit]] = {
+        @tailrec
+        def rec(commitSha: String, list: List[Commit]): Either[String, List[Commit]] = {
+            if (commitSha == Commit.root(this).sha) return Right(list)
+            val commitFile = commitsFolder/commitSha
+            IO.read(this, commitFile, Commit.deserialize) match {
+                case Left(error) => Left(error)
+                case Right(commit) => {
+                    rec(commit.parentCommitSha, commit :: list)
+                }
+            }
+        }
+
+        lastCommitSha.map(commitSha => {
+            rec(commitSha, Nil)
+        }).flatten
+    }
+
+    @impure
     lazy val branches: Either[String, List[Branch]] = {
         IO.readAll(this, branchesFolder, Branch.deserialize)
     }
