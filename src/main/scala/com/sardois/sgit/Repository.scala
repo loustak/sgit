@@ -24,8 +24,8 @@ case class Repository(repositoryFolder: File) {
     }
 
     @impure
-    lazy val currentIndex: Either[String, NotStagedIndex] = {
-        IO.read(this, indexFile, NotStagedIndex.deserialize)
+    lazy val notCommitedCurrentIndex: Either[String, NotCommitedIndex] = {
+        IO.read(this, indexFile, NotCommitedIndex.deserialize)
     }
 
     @impure
@@ -39,8 +39,8 @@ case class Repository(repositoryFolder: File) {
     }
 
     @impure
-    lazy val indexes: Either[String, List[StagedIndex]] = {
-        IO.readAll(this, indexesFolder, StagedIndex.deserialize)
+    lazy val indexes: Either[String, List[CommitedIndex]] = {
+        IO.readAll(this, indexesFolder, CommitedIndex.deserialize)
     }
 
     @impure
@@ -64,8 +64,33 @@ case class Repository(repositoryFolder: File) {
     }
 
     @impure
+    lazy val lastCommitedIndex: Either[String, CommitedIndex] = {
+        for {
+            lastCommit <- lastCommit
+            lastCommitedIndex <- lastCommit.index
+        } yield lastCommitedIndex
+    }
+
+    @impure
     lazy val hasUncommitedChanges: Either[String, Boolean] = {
-        Right(false)
+        val tuple = for {
+            notCommitedCurrentIndex <- notCommitedCurrentIndex
+            lastCommitedIndex <- lastCommitedIndex
+        } yield (notCommitedCurrentIndex, lastCommitedIndex)
+
+        val modifiedIndex = listPotentiallyModifiedFilesAsIndex()
+        val deletedIndex = listPotentiallyDeletedFilesAsIndex()
+
+        tuple.map( t => {
+            val uncommitedCurrentIndex = t._1
+            val lastCommitedIndex = t._2
+
+            uncommitedCurrentIndex.newfiles(lastCommitedIndex).nonEmpty ||
+            uncommitedCurrentIndex.modified(lastCommitedIndex).nonEmpty ||
+            lastCommitedIndex.deleted(uncommitedCurrentIndex).nonEmpty ||
+            uncommitedCurrentIndex.modified(modifiedIndex).nonEmpty ||
+            uncommitedCurrentIndex.deleted(deletedIndex).nonEmpty
+        })
     }
 
     @impure
@@ -85,7 +110,7 @@ case class Repository(repositoryFolder: File) {
             blobsFolder.createDirectories()
             commitsFolder.createDirectories()
             indexesFolder.createDirectories()
-            IO.write(StagedIndex.empty(this))
+            IO.write(CommitedIndex.empty(this))
 
             Right("Repository initialized.")
         } catch {
@@ -105,12 +130,30 @@ case class Repository(repositoryFolder: File) {
             .toList
     }
 
-    def relativize(file: File): String = {
-        workingDirectory.relativize(file).toString
+    def listPotentiallyModifiedFilesAsIndex(): NotCommitedIndex = {
+        val potentiallyModifiedFiles = listAllFiles()
+            .filter(file => file.exists)
+            .map(file => (relativize(file), Util.shaFile(file)))
+            .toMap
+
+        NotCommitedIndex(this, potentiallyModifiedFiles)
     }
 
-    def relativizeFiles(files: List[File]): List[String] = {
-        files.map(file => relativize(file))
+    def listPotentiallyDeletedFilesAsIndex(): NotCommitedIndex = {
+        val potentiallyDeletedFiles = listAllFiles()
+            .map(file => (relativize(file), ""))
+            .toMap
+
+        NotCommitedIndex(this, potentiallyDeletedFiles)
+    }
+
+    def listPotentiallyUntrackedFiles(): List[String] = {
+        listAllFiles()
+            .map(file => relativize(file))
+    }
+
+    def relativize(file: File): String = {
+        workingDirectory.relativize(file).toString
     }
 }
 

@@ -14,9 +14,9 @@ case class Commit(
          ) extends IO {
 
     @impure
-    lazy val index: Either[String, Index] = {
+    lazy val index: Either[String, CommitedIndex] = {
         val indexFile = repository.indexesFolder/indexSha
-        IO.read(repository, indexFile, StagedIndex.deserialize)
+        IO.read(repository, indexFile, CommitedIndex.deserialize)
     }
 
     @impure
@@ -53,7 +53,7 @@ object Commit {
     }
 
     def root(repository: Repository): Commit = {
-        Commit(repository, "root commit", StagedIndex.empty(repository).sha, "", "", "")
+        Commit(repository, "root commit", CommitedIndex.empty(repository).sha, "", "", "")
     }
 
     def dateFormatter = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss")

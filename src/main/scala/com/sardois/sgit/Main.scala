@@ -44,6 +44,7 @@ object Main {
                 case "add" => call(config, Command.add)
                 case "commit" => call(config, Command.commit)
                 case "status" => call(config, Command.status)
+                case "checkout" => call(config, Command.checkout)
                 case "branch" => config.list match {
                     case true => call(config, Command.listBranchAndTags)
                     case false =>
