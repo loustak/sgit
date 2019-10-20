@@ -187,7 +187,7 @@ case class Repository(repositoryFolder: File) {
 object Repository {
 
     // TODO: change to sgit
-    val directoryName: String = "vcs"
+    val directoryName: String = ".sgit"
     val headPath: String = "head"
     val indexPath: String = "index"
     val detachedPath: String = "detached"
