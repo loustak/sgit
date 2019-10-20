@@ -158,12 +158,13 @@ object Command {
         })
 
         // TODO
-        Right("Checkout ready")
+        Right("WIP")
     }
 
     @impure
     def diff(repository: Repository, config: Config): Either[String, String] = {
-        ???
+        // TODO
+        Right("WIP")
     }
 
     @impure
@@ -178,25 +179,20 @@ object Command {
 
     @impure
     def logPatch(repository: Repository, config: Config): Either[String, String] = {
-        Right("hola")
+        // TODO
+        Right("WIP")
     }
 
     @impure
     def logStat(repository: Repository, config: Config): Either[String, String] = {
         repository.lastCommit.map( commit => {
             commit.foreachCommit( (newCommit, oldCommit) => {
-                val indexes = for {
+                for {
                     newIndex <- newCommit.index
                     oldIndex <- oldCommit.index
-                } yield (newIndex, oldIndex)
-
-                indexes.map(tuple => {
-                    val newIndex = tuple._1
-                    val oldIndex = tuple._2
-                    val stats = Index.diff(repository, newIndex, oldIndex)
-
-                    UI.logStats(newCommit, stats)
-                })
+                    changes <- Index.diff(repository, newIndex, oldIndex)
+                    result <- Right(UI.logStats(commit, changes))
+                } yield (result)
             })
         }).flatten
     }

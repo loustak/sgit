@@ -86,32 +86,52 @@ object Index {
     }
 
     @impure
-    def diff(repository: Repository, newIndex: Index, oldIndex: Index): Map[String, Diffs] = {
+    def diff(repository: Repository, newIndex: Index, oldIndex: Index): Either[String, Map[String, Diffs]] = {
         val blobFolder = repository.blobsFolder
 
-        newIndex.mapIndex.keys.map(path => {
-            val newSha = newIndex.mapIndex(path)
-            val newBlobFile = blobFolder/newSha
+        IO.handleIOException(() => {
 
-            if (oldIndex.mapIndex.contains(path)) {
-                val oldSha = oldIndex.mapIndex(path)
+            val r1 = newIndex.mapIndex.keys.map(path => {
+                val newSha = newIndex.mapIndex(path)
+                val newBlobFile = blobFolder/newSha
 
-                if (newSha != oldSha) {
-                    val oldBlobFile = blobFolder/oldSha
+                if (oldIndex.mapIndex.contains(path)) {
+                    val oldSha = oldIndex.mapIndex(path)
 
-                    val lines1 = newBlobFile.lines.toVector
-                    val lines2 = oldBlobFile.lines.toVector
+                    if (newSha != oldSha) {
+                        val oldBlobFile = blobFolder/oldSha
 
-                    (path -> Diff.diff(lines1, lines2))
+                        val lines1 = newBlobFile.lines.toVector
+                        val lines2 = oldBlobFile.lines.toVector
+
+                        // Get the diff between the two modified files
+                        (path -> Diff.diff(lines1, lines2))
+                    } else {
+                        // No changes
+                        (path -> Vector())
+                    }
+
                 } else {
-                    (path -> Vector())
+                    val lines1 = newBlobFile.lines.toVector
+                    (path -> Diff.diff(lines1, Vector()))
                 }
+            })
 
-            } else {
-                (path -> Vector())
-            }
+            val r2 = oldIndex.mapIndex.keys.map(path => {
+                val oldSha = oldIndex.mapIndex(path)
+                val oldBlobFile = blobFolder/oldSha
+
+                if (!newIndex.mapIndex.contains(path)) {
+                    val lines2 = oldBlobFile.lines.toVector
+                    (path -> Diff.diff(Vector(), lines2))
+                } else {
+                    ("" -> Vector())
+                }
+            })
+
+            Right((r1 ++ r2).toMap)
         })
-    }.toMap
+    }
 }
 
 case class CommitedIndex(repository: Repository, mapIndex: Map[String, String]) extends Index {
