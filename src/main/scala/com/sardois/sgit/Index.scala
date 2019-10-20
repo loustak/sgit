@@ -1,285 +1,239 @@
 package com.sardois.sgit
 
 import better.files.File
+import com.sardois.sgit.Diff.Diffs
 
 import scala.annotation.tailrec
 
-class Index(private val map: Map[String, String]) {
+trait Index extends IO {
 
-    def getMap: Map[String, String] = map
+    val mapIndex: Map[String, String]
 
-    def size: Int = map.size
+    def add(relativePath: String, sha: String): Index
 
-    def add(path: String, sha: String): Index = {
-        Index(map + (path -> sha))
-    }
-
-    def add(indexEntry: IndexEntry): Index = {
-        val path = indexEntry.relativePath
-        val sha = indexEntry.sha
-        add(path, sha)
-    }
-
-    def addAll(indexEntries: Iterable[IndexEntry]): Index = {
-
+    def addAll(list: List[(String, String)]): Index = {
         @tailrec
-        def rec(indexEntries: Iterable[IndexEntry], index: Index): Index = {
-            if (indexEntries.isEmpty) index
-            else {
-                val head = indexEntries.head
-                val tail = indexEntries.tail
-                rec(tail, index.add(head))
+        def rec(list: List[(String, String)], index: Index): Index = {
+            list match {
+                case ::(head, next) => {
+                    val relativePath = head._1
+                    val sha = head._2
+                    rec(next, index.add(relativePath, sha))
+                }
+                case Nil => index
             }
         }
 
-        rec(indexEntries, this)
+        rec(list, this)
     }
 
-    def remove(relativePath: String): Index = {
-        val newMap = map.filter( tuple => {
-            val key = tuple._1
-            !key.contains(relativePath)
-        })
+    def remove(relativePath: String): Index
 
-        Index(newMap)
-    }
-
-    def remove(indexEntry: IndexEntry): Index = {
-        remove(indexEntry.relativePath)
-    }
-
-    def removeAll(indexEntries: Iterable[IndexEntry]): Index = {
-
+    def removeAll(list: List[String]): Index = {
         @tailrec
-        def rec(indexEntries: Iterable[IndexEntry], index: Index): Index = {
-            if (indexEntries.isEmpty) index
-            else {
-                val head = indexEntries.head
-                val tail = indexEntries.tail
-                rec(tail, index.remove(head))
+        def rec(list: List[String], index: Index): Index = {
+            list match {
+                case ::(head, next) => {
+                    rec(next, index.remove(head))
+                }
+                case Nil => index
             }
         }
 
-        rec(indexEntries, this)
+        rec(list, this)
     }
 
-    def untracked(otherIndex: Index): Iterable[String] = {
-        otherIndex.map.keys.filter( key => {
-            !map.contains(key)
-        })
-    }
-
-    def newfiles(otherIndex: Index): Iterable[String] = {
-        map.keys.filter( key => {
-            !otherIndex.map.contains(key)
-        })
-    }
-
-    def modified(otherIndex: Index): Iterable[String] = {
-        otherIndex.map.keys.filter( key => {
-            if (map.contains(key)) {
-                // Return true if sha changed for the same file
-                otherIndex.map(key) != map(key)
-            } else false
-        })
-    }
-
-    def deleted(otherIndex: Index): Iterable[String] = {
-        otherIndex.map.keys.filter( key => {
-            !map.contains(key)
-        })
-    }
-
-    def sha(): String = {
-        Util.shaString(toString)
-    }
-
-    override def toString: String = {
-        map.keys.map( path => {
-            path + " " + map(path)
+    override def serialize: String = {
+        mapIndex.keys.map(key => {
+            key + " " + mapIndex(key)
         }).mkString(System.lineSeparator())
+    }
+
+    def sha: String = {
+        Util.shaString(serialize)
+    }
+
+    def newfiles(otherIndex: Index): List[String] = {
+        mapIndex.keys.filter(key => {
+            !otherIndex.mapIndex.contains(key)
+        }).toList
+    }
+
+    def modified(otherIndex: Index): List[String] = {
+        otherIndex.mapIndex.keys.filter(key => {
+            if (mapIndex.contains(key)) {
+                otherIndex.mapIndex(key) != mapIndex(key)
+            } else false
+        }).toList
+    }
+
+    def deleted(otherIndex: Index): List[String] = {
+        mapIndex.keys.filter(key => {
+            !otherIndex.mapIndex.contains(key)
+        }).toList
     }
 }
 
 object Index {
 
-    def apply(map: Map[String, String] = Map()): Index = {
-        new Index(map)
+    def linesToMap(lines: List[String]): Map[String, String] = {
+        lines.map( line => {
+            val split = line.split(" ")
+            val path = split(0)
+            val sha = split(1)
+            (path -> sha)
+        }).toMap
     }
 
-    def apply(indexEntries: Iterable[IndexEntry]): Index = {
-        Index().addAll(indexEntries)
+    @impure
+    def diff(repository: Repository, newIndex: Index, oldIndex: Index): Either[String, Map[String, Diffs]] = {
+        val blobFolder = repository.blobsFolder
+
+        IO.handleIOException(() => {
+
+            val r1 = newIndex.mapIndex.keys.map(path => {
+                val newSha = newIndex.mapIndex(path)
+                val newBlobFile = blobFolder/newSha
+
+                if (oldIndex.mapIndex.contains(path)) {
+                    val oldSha = oldIndex.mapIndex(path)
+
+                    if (newSha != oldSha) {
+                        val oldBlobFile = blobFolder/oldSha
+
+                        val lines1 = newBlobFile.lines.toVector
+                        val lines2 = oldBlobFile.lines.toVector
+
+                        // Get the diff between the two modified files
+                        path -> Diff.diff(lines1, lines2)
+                    } else {
+                        // No changes
+                        "" -> Vector()
+                    }
+
+                } else {
+                    val lines1 = newBlobFile.lines.toVector
+                    path -> Diff.diff(lines1, Vector())
+                }
+            })
+
+            val r2 = oldIndex.mapIndex.keys.map(path => {
+                if (!newIndex.mapIndex.contains(path)) {
+                    val oldSha = oldIndex.mapIndex(path)
+                    val oldBlobFile = blobFolder/oldSha
+                    val lines2 = oldBlobFile.lines.toVector
+                    path -> Diff.diff(Vector(), lines2)
+                } else {
+                    "" -> Vector()
+                }
+            })
+
+            Right((r1 ++ r2).toMap)
+        })
     }
 }
 
-object IOIndex {
+case class CommitedIndex(repository: Repository, mapIndex: Map[String, String]) extends Index {
 
-    def getIndexesFolder(repoFolder: File): File = {
-        repoFolder/Repository.indexesPath
+    override val file: File = repository.indexesFolder/sha
+
+    lazy val blobs: List[(String, File)] = {
+        val blobFolder = repository.blobsFolder
+
+        mapIndex.keys.map(path => {
+            val sha = mapIndex(path)
+            (path, blobFolder/sha)
+        }).toList
     }
 
-    def getIndexFile(repoFolder: File): File = {
-        repoFolder/Repository.indexPath
+    def add(relativePath: String, sha: String): Index = {
+        CommitedIndex(repository, mapIndex + (relativePath -> sha))
     }
 
-    def read(indexFile: File): Index = {
-        if (!indexFile.exists) {
-            throw new RuntimeException("Index doesn't exists at " + indexFile.pathAsString)
-        }
-
-        val lines = indexFile.lines().toList
-
-        @tailrec
-        def rec(lines: Iterable[String], index: Index): Index = {
-            if (lines == Nil) return index
-            val split = lines.head.split(" ")
-            if (split.length < 2) {
-                throw new IllegalArgumentException("An entry in the index file is invalid")
-            }
-
-            val path = split(0)
-            val sha = split(1)
-
-            val newIndex = index.add(path, sha)
-            rec(lines.tail, newIndex)
-        }
-
-        rec(lines, Index())
-    }
-
-    @impure
-    def read(indexFolder: File, indexSha: String): Index = {
-        val indexFile = indexFolder/indexSha
-        read(indexFile)
-    }
-
-    @impure
-    def getIndex(repoFolder: File): Index = {
-        val indexFile = getIndexFile(repoFolder)
-        read(indexFile)
-    }
-
-    @impure
-    def write(indexFile: File, index: Index): Unit = {
-        indexFile.clear()
-        indexFile.write(index.toString)
-    }
-
-    @impure
-    def getUntrackedFiles(repoFolder: File, index: Index, paths: Iterable[String]): Iterable[String] = {
-        val indexEntries = IOIndexEntry.fromPaths(repoFolder, paths)
-        val tmpIndex = Index(indexEntries)
-        index.untracked(tmpIndex)
-    }
-
-    @impure
-    def getNotStagedModifiedFiles(repoFolder: File, index: Index, paths: Iterable[String]): Iterable[String] = {
-        val indexEntries = IOIndexEntry.fromPaths(repoFolder, paths)
-        val tmpIndex = Index(indexEntries)
-        index.modified(tmpIndex)
-    }
-
-    @impure
-    def getNotStagedDeletedFiles(repoFolder: File, index: Index, paths: Iterable[String]): Iterable[String] = {
-        val files = Util.pathsToFiles(paths)
-        val realFiles = files.filter( file => file.exists)
-        val indexEntries = IOIndexEntry.fromFiles(repoFolder, realFiles)
-        val newIndex = Index(indexEntries)
-        newIndex.deleted(index)
-    }
-
-    def getStagedNewFiles(newIndex: Index, oldIndex: Index): Iterable[String] = {
-        newIndex.newfiles(oldIndex)
-    }
-
-    def getStagedModifiedFiles(newIndex: Index, oldIndex: Index): Iterable[String] = {
-        newIndex.modified(oldIndex)
-    }
-
-    def getStagedDeletedFiles(newIndex: Index, oldIndex: Index): Iterable[String] = {
-        newIndex.deleted(oldIndex)
-    }
-
-    def haveUncommitedChanges(repoFolder: File, newIndex: Index, oldIndex: Index, paths: Iterable[String]): Boolean = {
-        getStagedNewFiles(newIndex, oldIndex).nonEmpty ||
-        getStagedModifiedFiles(newIndex, oldIndex).nonEmpty ||
-        getStagedDeletedFiles(newIndex, oldIndex).nonEmpty ||
-        getNotStagedModifiedFiles(repoFolder, newIndex, paths).nonEmpty ||
-        getNotStagedDeletedFiles(repoFolder, newIndex, paths).nonEmpty
-    }
-
-    @impure
-    def throwIfUncommitedChanges(repoFolder: File, newIndex: Index, oldIndex: Index, paths: Iterable[String]): Unit = {
-        if (haveUncommitedChanges(repoFolder, newIndex, oldIndex, paths)) {
-            throw new RuntimeException("You have uncommited changes, please first commit your changes.")
-        }
-    }
-
-    @impure
-    def add(repoFolder: File, commandFolder: File, args: Config): Option[String] = {
-        val blobsFolder = IOBlob.getBlobsFolder(repoFolder)
-        val indexFile = getIndexFile(repoFolder)
-        val index = read(indexFile)
-
-        // Split files in two, the one to try to add
-        // and the one that must be deleted
-        val paths = args.paths
-        val files = Util.pathsToFiles(paths).filter( file => !Repository.isARepositoryFile(repoFolder, file))
-        val filesToAdd  = files.filter( file => file.exists)
-
-        val filesToAddCleaned = Util.removeDirectories(Util.getNestedFiles(filesToAdd))
-        val filesToRemoveCleaned = Repository.relativizesFile(repoFolder, files)
-
-        val indexEntriesToAdd = IOIndexEntry.fromFiles(repoFolder, filesToAddCleaned)
-        val indexEntriesToRemove = IndexEntry.fromPathsWithEmptySha(filesToRemoveCleaned)
-        val newIndex = index.removeAll(indexEntriesToRemove).addAll(indexEntriesToAdd)
-
-        write(indexFile, newIndex)
-        IOBlob.writeAll(blobsFolder, filesToAddCleaned)
-
-        None
-    }
-
-    @impure
-    def status(repoFolder: File, commandFolder: File, args: Config): Option[String] = {
-        val index = IOIndex.getIndex(repoFolder)
-        val oldIndex = IOHead.getOldIndex(repoFolder)
-
-        val files = Repository.list(repoFolder)
-        val paths = Util.filesToPath(files)
-
-        // Get the list of files
-        val stagedNewFiles = getStagedNewFiles(index, oldIndex)
-        val stagedModifiedFiles = getStagedModifiedFiles(index, oldIndex)
-        val stagedDeletedFiles = getStagedDeletedFiles(index, oldIndex)
-        val notStagedModifiedFiles = getNotStagedModifiedFiles(repoFolder, index, paths)
-        val notStagedDeletedFiles = getNotStagedDeletedFiles(repoFolder, index, paths)
-        val untrackedFiles = getUntrackedFiles(repoFolder, index, paths)
-
-        // Transform the list of files to strings
-        val stagedNewFilesString = Util.formatList(stagedNewFiles, "added ")
-        val stagedModifiedFilesString = Util.formatList(stagedModifiedFiles, "modified ")
-        val stagedDeletedFilesString = Util.formatList(stagedDeletedFiles, "deleted ")
-        val notStagedModifiedFilesString = Util.formatList(notStagedModifiedFiles, "modified ")
-        val notStagedDeletedFilesString = Util.formatList(notStagedDeletedFiles, "deleted ")
-        val untrackedString = Util.formatList(untrackedFiles, "untracked ")
-
-        val stringList = List(
-            "Staged files:", stagedNewFilesString, stagedModifiedFilesString, stagedDeletedFilesString,
-            "Not staged files:", notStagedModifiedFilesString, notStagedDeletedFilesString,
-            "Not tracked files:", untrackedString
-        )
-
-        val newLine = System.lineSeparator()
-        Some(stringList.mkString(newLine))
-    }
-
-    @impure
-    def clean(repoFolder: File, index: Index): Unit = {
-        index.getMap.foreach( tuple => {
-            val path = tuple._1
-            val file = repoFolder.parent/path
-            file.delete()
+    def remove(relativePath: String): Index = {
+        val newMap = mapIndex.filter(tuple => {
+            val key = tuple._1
+            !(key == relativePath || File(key).isChildOf(File(relativePath)))
         })
+
+        CommitedIndex(repository, newMap)
+    }
+
+    def toNotCommitedIndex: NotCommitedIndex = {
+        NotCommitedIndex(repository, mapIndex)
+    }
+
+    @impure
+    def createBlobs(): Either[String, Boolean] = {
+        IO.handleIOException(() => {
+            blobs.foreach(tuple => {
+                val relativePath = tuple._1
+                val blobFile = tuple._2
+
+                val blobFileInWorkingDirectory = repository.workingDirectory/relativePath
+                blobFile.copyTo(blobFileInWorkingDirectory, true)
+            })
+            Right(true)
+        })
+    }
+}
+
+object CommitedIndex {
+
+    def deserialize(repository: Repository, fileName: String, str: String): Either[String, CommitedIndex] = {
+        val lines = str.linesIterator.toList
+        val map = Index.linesToMap(lines)
+        Right(CommitedIndex(repository, map))
+    }
+
+    def empty(repository: Repository): CommitedIndex = {
+        CommitedIndex(repository, Map[String, String]())
+    }
+}
+
+case class NotCommitedIndex(repository: Repository, mapIndex: Map[String, String]) extends Index {
+
+    override val file: File = repository.indexFile
+
+    def add(relativePath: String, sha: String): Index = {
+        NotCommitedIndex(repository, mapIndex + (relativePath -> sha))
+    }
+
+    def remove(relativePath: String): Index = {
+        val newMap = mapIndex.filter(tuple => {
+            val key = tuple._1
+            !(key == relativePath || File(key).isChildOf(File(relativePath)))
+        })
+
+        NotCommitedIndex(repository, newMap)
+    }
+
+    def toStagedIndex: CommitedIndex = {
+        CommitedIndex(repository, mapIndex)
+    }
+
+    def untracked(relativePaths: List[String]): List[String] = {
+        relativePaths.filter( path => {
+            !mapIndex.contains(path)
+        })
+    }
+
+    @impure
+    def clean(): Either[String, Boolean] = {
+        IO.handleIOException(() => {
+            mapIndex.keys.foreach(path => {
+                File(path).delete()
+            })
+            Right(true)
+        })
+    }
+}
+
+object NotCommitedIndex {
+
+    def deserialize(repository: Repository, fileName: String, str: String): Either[String, NotCommitedIndex] = {
+        val lines = str.linesIterator.toList
+        val map = Index.linesToMap(lines)
+        Right(NotCommitedIndex(repository, map))
     }
 }

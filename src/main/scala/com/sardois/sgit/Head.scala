@@ -1,111 +1,88 @@
 package com.sardois.sgit
 
 import better.files._
+import com.sardois.sgit.CheckableEnum.CheckableEnum
 
-object IOHead {
+case class Head(
+                   repository: Repository,
+                   checkableType: CheckableEnum,
+                   branchTagOrCommitSha: String
+               ) extends IO {
 
-    def getHeadFile(repoFolder: File): File = {
-        repoFolder/Repository.headPath
-    }
+    val isBranch: Boolean = checkableType == CheckableEnum.BRANCH
+    val isTag: Boolean = checkableType == CheckableEnum.TAG
+    val isCommit: Boolean = checkableType == CheckableEnum.COMMIT
 
-    def getDetachedFile(repoFolder: File) = {
-        repoFolder/Repository.detachedPath
-    }
-
-    @impure
-    def isDetached(detachedFile: File): Boolean = {
-        detachedFile.exists
-    }
+    val isDetached: Boolean = isTag || isCommit
 
     @impure
-    def detach(detachedFile: File, commitSha: String): Unit = {
-        detachedFile.write(commitSha)
-    }
-
-    @impure
-    def attach(detachedFile: File): Unit = {
-        if (detachedFile.exists) {
-            detachedFile.delete()
+    lazy val pointedBranch: Either[String, Branch] = {
+        if (isBranch) {
+            val branchFile = repository.branchesFolder / branchTagOrCommitSha
+            IO.read(repository, branchFile, Branch.deserialize)
+        } else {
+            Left("The head is not pointing to a branch but to a " + checkableType.toString + ".")
         }
     }
 
     @impure
-    def read(headFile: File): (String, String) = {
-        val line = headFile.lines.toArray
-
-        if (!line.isDefinedAt(0)) {
-            throw new RuntimeException("HEAD file is corrupted")
+    lazy val pointedTag: Either[String, Tag] = {
+        if (isTag) {
+            val tagFile = repository.tagsFolder / branchTagOrCommitSha
+            IO.read(repository, tagFile, Tag.deserialize)
+        } else {
+            Left("The head is not pointing to a tag but to a " + checkableType.toString + ".")
         }
-
-        val split = line(0).split(" ")
-        if (split.size != 2) {
-            throw new RuntimeException("HEAD file format is invalid")
-        }
-
-        (split(0), split(1))
     }
 
     @impure
-    def getCheckableFile(repoFolder: File): File = {
-        val headFile = getHeadFile(repoFolder)
-        val tuple = read(headFile)
+    lazy val pointedCommit: Either[String, Commit] = {
+        if (isCommit) {
+            val commitFile = repository.commitsFolder / branchTagOrCommitSha
+            IO.read(repository, commitFile, Commit.deserialize)
+        } else {
+            Left("The head is not pointing to a commit but to a " + checkableType.toString + ".")
+        }
+    }
 
-        val checkableType = tuple._1
-        val checkableName = tuple._2
+    @impure
+    lazy val commit: Either[String, Commit] = {
+        if (isBranch) pointedBranch.map(branch => branch.commit).flatten
+        else if (isTag) pointedTag.map(tag => tag.commit).flatten
+        else pointedCommit
+    }
+
+    val file: File = repository.headFile
+
+    override def serialize: String = {
+        checkableType.toString + " " + branchTagOrCommitSha
+    }
+}
+
+object CheckableEnum extends Enumeration {
+
+    type CheckableEnum = Value
+
+    val BRANCH = Value("branch")
+    val TAG = Value("tag")
+    val COMMIT = Value("commit")
+}
+
+object Head {
+
+    def deserialize(repository: Repository, fileName: String, str: String): Either[String, Head] = {
+        val split = str.split(" ")
+        if (split.length != 2) return Left("Head file has invalid format.")
+
+        val checkableType = split(0)
+        val branchTagOrCommit = split(1)
 
         if (checkableType == CheckableEnum.BRANCH.toString) {
-            val branchesFolder = IOCheckable.getBranchesFolder(repoFolder)
-            return branchesFolder/checkableName
+            Right(Head(repository, CheckableEnum.BRANCH, branchTagOrCommit))
         } else if (checkableType == CheckableEnum.TAG.toString) {
-            val tagsFolder = IOCheckable.getTagsFolder(repoFolder)
-            return tagsFolder/checkableName
-        }
-
-        throw new RuntimeException("The head as an unknown checkable type")
-    }
-
-    @impure
-    def getPointedCommitSha(repoFolder: File): String = {
-        val checkableFile = getCheckableFile(repoFolder)
-        val commitSha = checkableFile.contentAsString
-
-        if (commitSha.length <= 0) {
-            throw new RuntimeException("Invalid file format, no commit sha in file " + checkableFile.pathAsString)
-        }
-
-        commitSha
-    }
-
-    @impure
-    def getPreviousCommit(repoFolder: File): Commit = {
-        val commitFolder = IOCommit.getCommitsFolder(repoFolder)
-        val commitSha = getPointedCommitSha(repoFolder)
-        IOCommit.read(commitFolder, commitSha)
-    }
-
-    @impure
-    def getOldIndex(repoFolder: File): Index = {
-        val commit = getPreviousCommit(repoFolder)
-
-        if (commit.sha == Commit.root.sha) {
-            return Index()
-        }
-
-        val indexSha = commit.indexSha
-        val indexFolder = IOIndex.getIndexesFolder(repoFolder)
-        IOIndex.read(indexFolder, indexSha)
-    }
-
-    @impure
-    def write(repoFolder: File, checkable: Checkable): Unit = {
-        val headFile = getHeadFile(repoFolder)
-        headFile.clear()
-        headFile.write(checkable.toString())
-    }
-
-    @impure
-    def setToCommit(repoFolder: File, commit: Commit): Unit = {
-        val checkableHeadFile = getCheckableFile(repoFolder)
-        IOCheckable.setToSha(checkableHeadFile, commit.sha)
+            Right(Head(repository, CheckableEnum.TAG, branchTagOrCommit))
+        } else if (checkableType == CheckableEnum.COMMIT.toString) {
+            Right(Head(repository, CheckableEnum.COMMIT, branchTagOrCommit))
+        } else Left("The head type is invalid.")
     }
 }

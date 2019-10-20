@@ -1,86 +1,84 @@
 package com.sardois.sgit
 
-import better.files.File
-import com.sardois.sgit.Diff.Diffs
 import com.sardois.sgit.DiffEnum.DiffEnum
 
 import scala.annotation.tailrec
 
-class Line(val lineNumber: Int, val text: String) {
+case class Line(lineNumber: Int, text: String) {
 
-    def diff(otherLine: Line): Diffs = {
-        if (text == otherLine.text) {
-            List(Diff(lineNumber, DiffEnum.SAME, text))
-        } else {
-            List(
-                Diff(lineNumber, DiffEnum.REMOVE, otherLine.text),
-                Diff(lineNumber, DiffEnum.ADD, text)
-            )
-        }
-    }
 }
 
-object Line {
+case class Diff(lineNumber: Int, diffEnum: DiffEnum, line: String) {
 
-    def apply(number: Int, text: String): Line = {
-        new Line(number, text)
+    override def toString: String = {
+        lineNumber.toString + " " + diffEnum.toString + " " + line
     }
-}
-
-class Diff(val lineNumber: Int, diffEnum: DiffEnum, val line: String) {
-
 }
 
 object DiffEnum extends Enumeration {
 
     type DiffEnum = Value
 
-    val SAME = Value
-    val ADD = Value
-    val REMOVE = Value
+    val ADD = Value("ADD")
+    val REMOVE = Value("REMOVE")
 }
 
 object Diff {
 
-    type Diffs = List[Diff]
-    type Lines = List[Line]
+    type Diffs = Vector[Diff]
 
     def apply(lineNumber: Int, diffEnum: DiffEnum, line: String): Diff = {
         new Diff(lineNumber, diffEnum, line)
     }
 
-    def linesFromString(lines: Iterable[String]): Lines = {
+    def diff(l1: Vector[String], l2: Vector[String]): Diffs = {
+
         @tailrec
-        def rec(lines: Iterable[String], lineNumber: Int, list: Lines): Lines = {
-            lines match {
-                case ::(head, next) => {
-                    val newList = Line(lineNumber, head) :: list
-                    rec(next, lineNumber + 1, newList)
+        def rec(i1: Int, i2: Int, diffs: Diffs): Diffs = {
+            if (i1 == l1.length) {
+                if (i2 == l2.length) return diffs
+                var c = 0
+                return l2.map(str => {
+                    val diff = Diff(i2 + c, DiffEnum.REMOVE, str)
+                    c = c + 1
+                    diff
+                })
+            }
+
+            val h1 = l1(i1)
+
+            if (i2 == l2.length) {
+                rec(i1 + 1, i2, diffs :+ Diff(i1, DiffEnum.ADD, h1))
+            } else if (h1 == l2(i2)) {
+                rec(i1 + 1, i2 + 1, diffs)
+            } else {
+                val idx = l2.indexOf(h1, i2)
+                if (idx == -1) {
+                    if (i1 == l1.length -1) {
+                        // We are on the last element, remove all the remaining elements of l2
+                        var c = 0
+                        val newDiff = l2.slice(i2, l2.length).map(str => {
+                            val diff = Diff(i2 + c, DiffEnum.REMOVE, str)
+                            c = c + 1
+                            diff
+                        }) :+ Diff(i1, DiffEnum.ADD, h1)
+                        rec(i1 + 1, i2 + c, diffs :++ newDiff)
+                    } else {
+                        rec(i1 + 1, i2, diffs :+ Diff(i1, DiffEnum.ADD, h1))
+                    }
+                } else {
+                    // Found, add all the intermediate elements
+                    var c = 0
+                    val newDiff = l2.slice(i2, idx).map(str => {
+                        val diff = Diff(i2 + c, DiffEnum.REMOVE, str)
+                        c = c + 1
+                        diff
+                    })
+                    rec(i1 + 1, idx + 1, diffs :++ newDiff)
                 }
-                case Nil => list
             }
         }
 
-        rec(lines, 1, List())
-    }
-
-    def diff(l1: Lines, l2: Lines): Diffs = {
-        /*
-        @tailrec
-        def rec(l1: Lines, l2: Lines, lineNumber: Int, diffs: Diffs): Diffs = {
-            if (l1.isEmpty && l2.isEmpty) diffs
-
-            val la = if (l1.isEmpty) Line(lineNumber, "") else l1.head
-            val lb = if (l2.isEmpty) Line(lineNumber, "") else l2.head
-            val newl1 = if (l1.isEmpty) l1 else l1.tail
-            val newl2 = if (l2.isEmpty) l2 else l2.tail
-            val diff = la.diff(lb)
-
-            rec(newl1, newl2, lineNumber + 1, (diff :: diffs))
-        }
-
-        rec(l1, l2, 0, List())
-         */
-        ???
+        rec(0, 0, Vector())
     }
 }

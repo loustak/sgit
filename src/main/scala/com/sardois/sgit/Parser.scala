@@ -51,7 +51,7 @@ object Parser {
                         .text("list all branches and tags."),
 
                     checkConfig( c =>
-                       if (c.mode == "branch" && c.branchName  == "" && c.list == false) {
+                       if (c.mode == "branch" && c.branchName  == "" && !c.list) {
                            failure("missing branch name.")
                        }
                        else success
@@ -81,6 +81,16 @@ object Parser {
             cmd(name = "diff")
                 .action((_, c) => c.copy(mode = "diff"))
                 .text("Show changes between commits, commit and working tree, etc...")
+                .children(
+                    arg[String](name = "<commit1 hash>")
+                        .action((x, c) => c.copy(commit1 = x))
+                        .text("the first commit")
+                        .required(),
+                    arg[String](name = "<commit2 hash>")
+                        .action((x, c) => c.copy(commit2 = x))
+                        .text("the second commit")
+                        .required()
+                )
 
             cmd(name = "log")
                 .action((_, c) => c.copy(mode = "log"))
@@ -91,7 +101,7 @@ object Parser {
                         .text("Show changes overtime"),
 
                     opt[Unit]('s', "stat")
-                        .action((_, c) => c.copy(patch = true))
+                        .action((_, c) => c.copy(stat = true))
                         .text("Show stats about changes overtime."),
                 )
 
