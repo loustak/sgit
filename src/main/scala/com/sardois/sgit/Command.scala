@@ -210,8 +210,35 @@ object Command {
 
     @impure
     def diff(repository: Repository, config: Config): Either[String, String] = {
-        // TODO
-        Right("WIP")
+        val commitSha1 = config.commit1
+        val commitSha2 = config.commit2
+
+        repository.commits.map(commits => {
+
+            val matchedCommit1 = commits.filter(c => c.sha.startsWith(commitSha1))
+            if (matchedCommit1.length <= 0) {
+                return Left("No commits matched for the first hash.")
+            } else if (matchedCommit1.length > 1) {
+                return Left("Multiple commits matched for the first hash, use a longer one.")
+            }
+
+            val matchedCommit2 = commits.filter(c => c.sha.startsWith(commitSha2))
+            if (matchedCommit1.length <= 0) {
+                return Left("No commits matched for the first second hash.")
+            } else if (matchedCommit2.length > 1) {
+                return Left("Multiple commits match for the second hash, use a longer one.")
+            }
+
+            val commit1 = matchedCommit1(0)
+            val commit2 = matchedCommit2(0)
+
+            for {
+                index1 <- commit1.index
+                index2 <- commit2.index
+                changes <- Index.diff(repository, index1, index2)
+                result <- Right(UI.logDiff(commit1, commit2, changes))
+            } yield result
+        }).flatten
     }
 
     @impure

@@ -18,5 +18,8 @@ case class Config(
     branchOrCommit: String = "",
     branchTagOrCommit: String = "",
 
+    commit1: String = "",
+    commit2: String = "",
+
     interactive: Boolean = false
 )
