@@ -27,7 +27,7 @@ case class Repository(repositoryFolder: File) {
     lazy val branch: Either[String, Branch] = {
         for {
             head <- head
-            branch <- head.branch
+            branch <- head.pointedBranch
         } yield branch
     }
 
@@ -55,8 +55,8 @@ case class Repository(repositoryFolder: File) {
             }
         }
 
-        lastCommitSha.map(commitSha => {
-            rec(commitSha, Nil)
+        lastCommit.map(lastCommit => {
+            rec(lastCommit.sha, Nil)
         }).flatten
     }
 
@@ -81,22 +81,11 @@ case class Repository(repositoryFolder: File) {
     }
 
     @impure
-    lazy val lastCommitSha: Either[String, String] = {
-        for {
-            branch <- branch
-        } yield branch.commitSha
-    }
-
-    @impure
     lazy val lastCommit: Either[String, Commit] = {
-        lastCommitSha.map( lastCommitSha => {
-            val rootCommit = Commit.root(this)
-            if (lastCommitSha == rootCommit.sha) {
-                Right(rootCommit)
-            } else {
-                IO.read(this, commitsFolder/lastCommitSha, Commit.deserialize)
-            }
-        }).flatten
+        for {
+            head <- head
+            lastCommit <- head.commit
+        } yield lastCommit
     }
 
     @impure
@@ -131,29 +120,29 @@ case class Repository(repositoryFolder: File) {
 
     @impure
     def init(): Either[String, String] = {
-        try {
+        IO.handleIOException( () => {
             repositoryFolder.createDirectories()
 
             indexFile.createFile()
 
             val rootCommit = Commit.root(this)
             val masterBranch = Branch(this, "master", rootCommit.sha)
-            headFile.write(masterBranch.name)
+            val head = Head(this, CheckableEnum.BRANCH, masterBranch.name)
 
             branchesFolder.createDirectories()
-            IO.write(masterBranch)
 
             tagsFolder.createDirectories()
 
             blobsFolder.createDirectories()
             commitsFolder.createDirectories()
             indexesFolder.createDirectories()
-            IO.write(CommitedIndex.empty(this))
 
-            Right("Repository initialized.")
-        } catch {
-            case ex: IOException => Left(ex.getMessage)
-        }
+            for {
+                _ <- IO.write(head)
+                _ <- IO.write(masterBranch)
+                result <- IO.write(CommitedIndex.empty(this))
+            } yield result
+        })
     }
 
     def listAllFiles(): List[File] = {

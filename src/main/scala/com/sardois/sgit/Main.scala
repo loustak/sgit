@@ -13,8 +13,10 @@ object Main {
                 val repositoryFolder = currentFolder/Repository.directoryName
                 val repo = Repository(repositoryFolder)
                 repo.init().fold(
-                    (errorMessage) => UI.printError(errorMessage),
-                    (successMessage) => UI.printSuccess(successMessage)
+                    errorMessage => UI.printError(errorMessage),
+                    _ => {
+                        UI.printSuccess("Repository initialized in " + repositoryFolder.pathAsString + ".")
+                    }
                 )
             }
         }

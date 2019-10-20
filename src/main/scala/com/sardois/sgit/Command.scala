@@ -1,6 +1,7 @@
 package com.sardois.sgit
 
 import better.files.File
+import com.sardois.sgit.CheckableEnum.CheckableEnum
 
 object Command {
 
@@ -43,17 +44,39 @@ object Command {
     def commit(repository: Repository, config: Config): Either[String, String] = {
         val commitMessage = config.commitMessage
 
-        for {
+        val result = for {
             currentIndex <- repository.notCommitedCurrentIndex
-            lastCommitSha <- repository.lastCommitSha
-            newCommit <- Right(Commit(repository, commitMessage, currentIndex.sha, lastCommitSha))
+            lastCommit <- repository.lastCommit
+            newCommit <- Right(Commit(repository, commitMessage, currentIndex.sha, lastCommit.sha))
             head <- repository.head
-            branch <- head.branch
-            newBranch <- Right(branch.moveToCommit(newCommit.sha))
-            _ <- IO.write(currentIndex.toStagedIndex())
+            _ <- IO.write(currentIndex.toStagedIndex)
             _ <- IO.write(newCommit)
-            result <- IO.write(newBranch)
-        } yield result
+        } yield (newCommit, head)
+
+        result.map(tuple => {
+            val newCommit = tuple._1
+            val head = tuple._2
+
+            if (head.isBranch) {
+                for {
+                    branch <- head.pointedBranch
+                    newBranch <- Right(branch.moveToCommit(newCommit.sha))
+                    result <- IO.write(newBranch)
+                } yield result
+            } else if (head.isTag) {
+                for {
+                    tag <- head.pointedTag
+                    newTag <- Right(tag.moveToCommit(newCommit.sha))
+                    result <- IO.write(newTag)
+                } yield result
+            } else {
+                // Head on commit
+                for {
+                    newHead <- Right(Head(repository, CheckableEnum.COMMIT, newCommit.sha))
+                    result <- IO.write(newHead)
+                } yield result
+            }
+        }).flatten
     }
 
     @impure
@@ -64,18 +87,17 @@ object Command {
 
         val indexes = for {
             head <- repository.head
-            branch <- head.branch
             notCommitedCurrentIndex <- repository.notCommitedCurrentIndex
             lastCommitedIndex <- repository.lastCommitedIndex
-        } yield (branch, notCommitedCurrentIndex, lastCommitedIndex)
+        } yield (head, notCommitedCurrentIndex, lastCommitedIndex)
 
         indexes.map( tuple => {
-            val branch = tuple._1
+            val head = tuple._1
             val uncommitedCurrentIndex = tuple._2
             val lastCommitedIndex = tuple._3
 
             val finalStr = UI.status(
-                branch.name,
+                head,
                 uncommitedCurrentIndex.newfiles(lastCommitedIndex),
                 uncommitedCurrentIndex.modified(lastCommitedIndex),
                 lastCommitedIndex.deleted(uncommitedCurrentIndex),
@@ -93,20 +115,25 @@ object Command {
         val branchName = config.branchName
 
         val tuple = for {
-            lastCommitSha <- repository.lastCommitSha
+            lastCommit <- repository.lastCommit
             branches <- repository.branches
-        } yield (lastCommitSha, branches)
+        } yield (lastCommit.sha, branches)
 
         tuple.map( t => {
             val lastCommitSha = t._1
             val branches = t._2
+
+            if (lastCommitSha == Commit.root(repository).sha) {
+                return Left("You have to make a first commit before creating a new branch.")
+            }
 
             val branchExists = branches.exists( branch => branch.name == branchName)
             if (branchExists) {
                 return Left("A branch with this name already exists.")
             }
 
-            IO.write(Branch(repository, branchName, lastCommitSha))
+            val newBranch = Branch(repository, branchName, lastCommitSha)
+            IO.write(newBranch)
         }).flatten
     }
 
@@ -115,13 +142,17 @@ object Command {
         val tagName = config.tagName
 
         val tuple = for {
-            lastCommitSha <- repository.lastCommitSha
+            lastCommit <- repository.lastCommit
             tags <- repository.tags
-        } yield (lastCommitSha, tags)
+        } yield (lastCommit.sha, tags)
 
         tuple.map( t => {
             val lastCommitSha = t._1
             val tags = t._2
+
+            if (lastCommitSha == Commit.root(repository).sha) {
+                return Left("You have to make a first commit before creating a new tag.")
+            }
 
             val tagExists = tags.exists( tag => tag.name == tagName)
             if (tagExists) {
@@ -155,9 +186,27 @@ object Command {
 
         repository.hasUncommitedChanges.map( result => {
             if (result) {
-                return Left("You have uncommited changes, please first commit before checkout.")
+                return Left("You have uncommited changes, please first commit " +
+                    "your changes before running checkout.")
             }
         })
+
+        def checkoutHelper(
+                              checkableName: String,
+                              checkableType: CheckableEnum,
+                              commit: Commit
+                          ): Either[String, String] = {
+            for {
+                currentIndex <- repository.notCommitedCurrentIndex
+                commitedIndex <- commit.index
+                newIndex <- Right(commitedIndex.toNotCommitedIndex)
+                newHead <- Right(Head(repository, checkableType, checkableName))
+                _ <- currentIndex.clean()
+                _ <- commitedIndex.createBlobs()
+                _ <- IO.write(newIndex)
+                result <- IO.write(newHead)
+            } yield result
+        }
 
         val checkables = for {
             branches <- repository.branches
@@ -171,41 +220,39 @@ object Command {
             val commits = tuple._3
 
             val matchedBranches = branches.filter(b => b.name == checkableName)
+            val matchedTags = tags.filter(t => t.name == checkableName)
+            val matchedCommits = commits.filter(c => c.sha.startsWith(checkableName))
+
             if (matchedBranches.length == 1) {
                 val branch = matchedBranches(0)
 
-                branch.commit.map(commit => commit.index.map(index => {
+                val result = for {
+                    commit <- branch.commit
+                    result <- checkoutHelper(checkableName, CheckableEnum.BRANCH, commit)
+                } yield result
 
-                }))
+                result.map(_ => Right("Now on branch " + checkableName + ".")).flatten
 
-                return Right("On branch " + branch.name)
-            }
-
-            val matchedTags = tags.filter(t => t.name == checkableName)
-            if (matchedTags.length == 1) {
+            } else if (matchedTags.length == 1) {
                 val tag = matchedTags(0)
 
-                tag.commit.map(tag => tag.index.map(index => {
+                val result = for {
+                    commit <- tag.commit
+                    result <- checkoutHelper(checkableName, CheckableEnum.TAG, commit)
+                } yield result
 
-                }))
+                result.map(_ => Right("Now on tag " + checkableName + ".")).flatten
 
-                return Right("On tag " + tag.name)
-            }
-
-            val matchedCommits = commits.filter(c => c.sha.startsWith(checkableName))
-            if (matchedCommits.length == 1) {
+            } else if (matchedCommits.length == 1) {
                 val commit = matchedCommits(0)
 
-                commit.index.map(index => {
-
-                })
-
-                return Right("On commit " + commit.sha)
+                checkoutHelper(commit.sha, CheckableEnum.COMMIT, commit).map(_ => {
+                    Right("Now on commit " + commit.sha + ".")
+                }).flatten
+            } else {
+                Left("Did not matched a single branch, tag or commit.")
             }
-
-        })
-
-        Left("Did not matched a single branch, tag or commit.")
+        }).flatten
     }
 
     @impure

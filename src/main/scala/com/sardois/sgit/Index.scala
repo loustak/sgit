@@ -137,6 +137,15 @@ case class CommitedIndex(repository: Repository, mapIndex: Map[String, String]) 
 
     override val file: File = repository.indexesFolder/sha
 
+    lazy val blobs: List[(String, File)] = {
+        val blobFolder = repository.blobsFolder
+
+        mapIndex.keys.map(path => {
+            val sha = mapIndex(path)
+            (path, blobFolder/sha)
+        }).toList
+    }
+
     def add(relativePath: String, sha: String): Index = {
         CommitedIndex(repository, mapIndex + (relativePath -> sha))
     }
@@ -148,6 +157,24 @@ case class CommitedIndex(repository: Repository, mapIndex: Map[String, String]) 
         })
 
         CommitedIndex(repository, newMap)
+    }
+
+    def toNotCommitedIndex: NotCommitedIndex = {
+        NotCommitedIndex(repository, mapIndex)
+    }
+
+    @impure
+    def createBlobs(): Either[String, Boolean] = {
+        IO.handleIOException(() => {
+            blobs.foreach(tuple => {
+                val relativePath = tuple._1
+                val blobFile = tuple._2
+
+                val blobFileInWorkingDirectory = repository.workingDirectory/relativePath
+                blobFile.copyTo(blobFileInWorkingDirectory, true)
+            })
+            Right(true)
+        })
     }
 }
 
@@ -181,13 +208,23 @@ case class NotCommitedIndex(repository: Repository, mapIndex: Map[String, String
         NotCommitedIndex(repository, newMap)
     }
 
-    def toStagedIndex(): CommitedIndex = {
+    def toStagedIndex: CommitedIndex = {
         CommitedIndex(repository, mapIndex)
     }
 
     def untracked(relativePaths: List[String]): List[String] = {
         relativePaths.filter( path => {
             !mapIndex.contains(path)
+        })
+    }
+
+    @impure
+    def clean(): Either[String, Boolean] = {
+        IO.handleIOException(() => {
+            mapIndex.keys.foreach(path => {
+                File(path).delete()
+            })
+            Right(true)
         })
     }
 }
