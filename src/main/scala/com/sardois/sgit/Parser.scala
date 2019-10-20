@@ -51,7 +51,7 @@ object Parser {
                         .text("list all branches and tags."),
 
                     checkConfig( c =>
-                       if (c.mode == "branch" && c.branchName  == "" && c.list == false) {
+                       if (c.mode == "branch" && c.branchName  == "" && !c.list) {
                            failure("missing branch name.")
                        }
                        else success

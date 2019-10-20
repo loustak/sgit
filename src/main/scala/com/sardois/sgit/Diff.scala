@@ -52,29 +52,29 @@ object Diff {
             } else if (h1 == l2(i2)) {
                 rec(i1 + 1, i2 + 1, diffs)
             } else {
-                if (i1 == l1.length - 1) {
-                    // We are on the last element, remove all the remaining elements of l2
-                    var c = 0
-                    val newDiff = l2.map(str => {
-                        val diff = Diff(i2 + c, DiffEnum.REMOVE, str)
-                        c = c + 1
-                        diff
-                    }) :+ Diff(i1, DiffEnum.ADD, h1)
-                    rec(i1 + 1, i2 + c, diffs :++ newDiff)
-                } else {
-                    val idx = l2.indexOf(h1, i2)
-                    if (idx == -1) {
-                        rec(i1 + 1, i2, diffs :+ Diff(i1, DiffEnum.ADD, h1))
-                    } else {
-                        // Found, add all the intermediate elements
+                val idx = l2.indexOf(h1, i2)
+                if (idx == -1) {
+                    if (i1 == l1.length -1) {
+                        // We are on the last element, remove all the remaining elements of l2
                         var c = 0
-                        val newDiff = l2.slice(i2, idx).map(str => {
+                        val newDiff = l2.slice(i2, l2.length).map(str => {
                             val diff = Diff(i2 + c, DiffEnum.REMOVE, str)
                             c = c + 1
                             diff
-                        })
-                        rec(i1 + 1, idx + 1, diffs :++ newDiff)
+                        }) :+ Diff(i1, DiffEnum.ADD, h1)
+                        rec(i1 + 1, i2 + c, diffs :++ newDiff)
+                    } else {
+                        rec(i1 + 1, i2, diffs :+ Diff(i1, DiffEnum.ADD, h1))
                     }
+                } else {
+                    // Found, add all the intermediate elements
+                    var c = 0
+                    val newDiff = l2.slice(i2, idx).map(str => {
+                        val diff = Diff(i2 + c, DiffEnum.REMOVE, str)
+                        c = c + 1
+                        diff
+                    })
+                    rec(i1 + 1, idx + 1, diffs :++ newDiff)
                 }
             }
         }

@@ -33,7 +33,8 @@ case class Commit(
         @tailrec
         def rec(previousCommit: Commit, parentCommitSha: String, str: String): Either[String, String] = {
             if (parentCommitSha == Commit.root(repository).sha) {
-                return Right(str)
+                val rootCommit = Commit.root(repository)
+                return func(previousCommit, rootCommit).map(newStr => str + newStr)
             }
 
             val commitFile = repository.commitsFolder/parentCommitSha

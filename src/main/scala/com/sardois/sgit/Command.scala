@@ -179,8 +179,16 @@ object Command {
 
     @impure
     def logPatch(repository: Repository, config: Config): Either[String, String] = {
-        // TODO
-        Right("WIP")
+        repository.lastCommit.map( commit => {
+            commit.foreachCommit( (newCommit, oldCommit) => {
+                for {
+                    newIndex <- newCommit.index
+                    oldIndex <- oldCommit.index
+                    changes <- Index.diff(repository, newIndex, oldIndex)
+                    result <- Right(UI.logPatch(newCommit, changes))
+                } yield (result)
+            })
+        }).flatten
     }
 
     @impure
@@ -191,7 +199,7 @@ object Command {
                     newIndex <- newCommit.index
                     oldIndex <- oldCommit.index
                     changes <- Index.diff(repository, newIndex, oldIndex)
-                    result <- Right(UI.logStats(commit, changes))
+                    result <- Right(UI.logStats(newCommit, changes))
                 } yield (result)
             })
         }).flatten

@@ -105,27 +105,26 @@ object Index {
                         val lines2 = oldBlobFile.lines.toVector
 
                         // Get the diff between the two modified files
-                        (path -> Diff.diff(lines1, lines2))
+                        path -> Diff.diff(lines1, lines2)
                     } else {
                         // No changes
-                        (path -> Vector())
+                        "" -> Vector()
                     }
 
                 } else {
                     val lines1 = newBlobFile.lines.toVector
-                    (path -> Diff.diff(lines1, Vector()))
+                    path -> Diff.diff(lines1, Vector())
                 }
             })
 
             val r2 = oldIndex.mapIndex.keys.map(path => {
-                val oldSha = oldIndex.mapIndex(path)
-                val oldBlobFile = blobFolder/oldSha
-
                 if (!newIndex.mapIndex.contains(path)) {
+                    val oldSha = oldIndex.mapIndex(path)
+                    val oldBlobFile = blobFolder/oldSha
                     val lines2 = oldBlobFile.lines.toVector
-                    (path -> Diff.diff(Vector(), lines2))
+                    path -> Diff.diff(Vector(), lines2)
                 } else {
-                    ("" -> Vector())
+                    "" -> Vector()
                 }
             })
 
