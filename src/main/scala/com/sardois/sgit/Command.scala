@@ -14,7 +14,7 @@ object Command {
 
         val filesToAdd = files
             .filter(file => file.exists)
-            .map(file => file :: file.listRecursively.toList).flatten
+            .flatMap(file => file :: file.listRecursively.toList)
             .filter(file => {
                 !(
                     file.isDirectory ||
@@ -151,14 +151,61 @@ object Command {
 
     @impure
     def checkout(repository: Repository, config: Config): Either[String, String] = {
+        val checkableName = config.branchTagOrCommit
+
         repository.hasUncommitedChanges.map( result => {
             if (result) {
                 return Left("You have uncommited changes, please first commit before checkout.")
             }
         })
 
-        // TODO
-        Right("WIP")
+        val checkables = for {
+            branches <- repository.branches
+            tags <- repository.tags
+            commits <- repository.commits
+        } yield (branches, tags, commits)
+
+        checkables.map(tuple => {
+            val branches = tuple._1
+            val tags = tuple._2
+            val commits = tuple._3
+
+            val matchedBranches = branches.filter(b => b.name == checkableName)
+            if (matchedBranches.length == 1) {
+                val branch = matchedBranches(0)
+
+                branch.commit.map(commit => commit.index.map(index => {
+
+                }))
+
+                return Right("On branch " + branch.name)
+            }
+
+            val matchedTags = tags.filter(t => t.name == checkableName)
+            if (matchedTags.length == 1) {
+                val tag = matchedTags(0)
+
+                tag.commit.map(tag => tag.index.map(index => {
+
+                }))
+
+                return Right("On tag " + tag.name)
+            }
+
+            val matchedCommits = commits.filter(c => c.sha.startsWith(checkableName))
+            if (matchedCommits.length == 1) {
+                val commit = matchedCommits(0)
+
+                commit.index.map(index => {
+
+                })
+
+                return Right("On commit " + commit.sha)
+            }
+
+        })
+
+        Left("Did not matched a single branch, tag or commit.")
     }
 
     @impure
