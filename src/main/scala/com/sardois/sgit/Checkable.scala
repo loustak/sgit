@@ -6,8 +6,13 @@ case class Branch(repository: Repository, name: String, commitSha: String) exten
 
     @impure
     lazy val commit: Either[String, Commit] = {
-        val commitFile = repository.commitsFolder/commitSha
-        IO.read(repository, commitFile, Commit.deserialize)
+        val rootCommit = Commit.root(repository)
+        if (commitSha == rootCommit.sha) {
+            Right(rootCommit)
+        } else {
+            val commitFile = repository.commitsFolder/commitSha
+            IO.read(repository, commitFile, Commit.deserialize)
+        }
     }
 
     override val file: File = repository.branchesFolder/name
@@ -27,8 +32,13 @@ case class Tag(repository: Repository, name: String, commitSha: String) extends 
 
     @impure
     lazy val commit: Either[String, Commit] = {
-        val commitFile = repository.commitsFolder/commitSha
-        IO.read(repository, commitFile, Commit.deserialize)
+        val rootCommit = Commit.root(repository)
+        if (commitSha == rootCommit.sha) {
+            Right(rootCommit)
+        } else {
+            val commitFile = repository.commitsFolder/commitSha
+            IO.read(repository, commitFile, Commit.deserialize)
+        }
     }
 
     override val file: File = repository.tagsFolder/name

@@ -166,17 +166,17 @@ object Command {
     @impure
     def listBranchAndTags(repository: Repository, config: Config): Either[String, String] = {
         val data = for {
-            currentBranch <- repository.branch
+            head <- repository.head
             branches <- repository.branches
             tags <- repository.tags
-        } yield (currentBranch, branches, tags)
+        } yield (head, branches, tags)
 
         data.map(d => {
-            val currentBranch = d._1
+            val head = d._1
             val branches = d._2
             val tags = d._3
 
-            Right(UI.branchAndTags(currentBranch, branches, tags))
+            Right(UI.branchAndTags(head, branches, tags))
         }).flatten
     }
 

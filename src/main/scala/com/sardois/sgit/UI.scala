@@ -64,7 +64,7 @@ object UI {
     }
 
     def branchAndTags(
-                         currentBranch: Branch,
+                         head: Head,
                          branches: List[Branch],
                          tags: List[Tag]
                      ): String = {
@@ -72,7 +72,7 @@ object UI {
         val branchTitle = "Branches:" + newline
         val branchStr = if (branches.isEmpty) "" else {
             branches.map(b => {
-                val curr = if (b.name == currentBranch.name) "* " else ""
+                val curr = if (b.name == head.branchTagOrCommitSha) "* " else ""
                 curr + b.name + " " + b.commitSha + newline
             }).mkString
         }
@@ -80,7 +80,8 @@ object UI {
         val tagTitle = "Tags:" + newline
         val tagStr = if (tags.isEmpty) "" else {
             tags.map(t => {
-                t.name + " " + t.commitSha + newline
+                val curr = if (t.name == head.branchTagOrCommitSha) "* " else ""
+                curr + t.name + " " + t.commitSha + newline
             }).mkString
         }
 
