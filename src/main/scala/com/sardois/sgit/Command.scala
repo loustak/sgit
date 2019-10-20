@@ -60,13 +60,13 @@ object Command {
             if (head.isBranch) {
                 for {
                     branch <- head.pointedBranch
-                    newBranch <- Right(branch.moveToCommit(newCommit.sha))
+                    newBranch <- Right(Branch(repository, branch.name, newCommit.sha))
                     result <- IO.write(newBranch)
                 } yield result
             } else if (head.isTag) {
                 for {
                     tag <- head.pointedTag
-                    newTag <- Right(tag.moveToCommit(newCommit.sha))
+                    newTag <- Right(Tag(repository, tag.name, newCommit.sha))
                     result <- IO.write(newTag)
                 } yield result
             } else {
